@@ -1,9 +1,9 @@
 const start = new Date();
 export const execute = async (Matrix, mek) => {
     const pingMsg = await Matrix.sendMessage(mek.key.remoteJid, {
-        text: '*pinging...*'
+        text: '𝚈𝚘𝚘 𝙼𝚏 𝚆𝚊𝚒𝚝...'
     }, { quoted : mek });
-    await Matrix.sendMessage(mek.key.remoteJid, { react: { text: `📣`, key: mek.key }})
+    await Matrix.sendMessage(mek.key.remoteJid, { react: { text: `😗`, key: mek.key }})
     const end = new Date().getTime();
     const responseTime = (end - start) / 1000;
     await Matrix.relayMessage(mek.key.remoteJid, {
@@ -11,7 +11,7 @@ export const execute = async (Matrix, mek) => {
             key: pingMsg.key,
             type: 14,
             editedMessage: {
-                conversation: `*ѕρєє∂ тєѕт🪽:* ${responseTime.toFixed(2)} мѕ`
+                conversation: `*sᴘᴇᴇᴅ Tᴇsᴛ 🜸:* ${responseTime.toFixed(2)} мѕ`
             }
         }
     }, {});
