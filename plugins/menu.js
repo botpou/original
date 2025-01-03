@@ -85,7 +85,7 @@ export const execute = async (Matrix, mek, { pushName, from, prefix }) => {
         menuMessage += `> *\`© 𝚈𝚘𝚘 𝙼𝚏 𝚃𝚑𝚒𝚜 𝙱𝚘𝚝 𝚆𝚊𝚜 𝙼𝚊𝚍𝚎 𝙱𝚢 𝙼𝚛𝚕𝚒𝚝 𝙰𝚗𝚍𝚢 ♉︎\`*`;
 
         await Matrix.sendMessage(mek.key.remoteJid, { 
-            image: { url: 'https://files.catbox.moe/hg0xgo.jpg' },
+            image: { url: 'https://img101.pixhost.to/images/306/550342639_than.jpg' },
             caption: menuMessage,
             contextInfo: {
                 externalAdReply: {
