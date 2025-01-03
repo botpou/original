@@ -22,7 +22,7 @@ export const execute = async (Matrix, mek, { args, reply }) => {
             scoreMessage += `⚾ *_Bowler 1:_* ${data.bowlerone} | Overs: ${data.bowleroneover} | Runs: ${data.bowleronerun} | Wickets: ${data.bowleronewickets} | Econ: ${data.bowleroneeconomy}\n`;
             scoreMessage += `⚾ *_Bowler 2:_* ${data.bowlertwo} | Overs: ${data.bowlertwoover} | Runs: ${data.bowlertworun} | Wickets: ${data.bowlertwowickets} | Econ: ${data.bowlertwoeconomy}\n`;
         }
-        scoreMessage += ` *Powered By Ethix-MD-V3*\n`;
+        scoreMessage += ` *Provided by Mrlit Andy*\n`;
 
         await Matrix.sendMessage(mek.key.remoteJid, { 
             text: scoreMessage,
@@ -30,7 +30,7 @@ export const execute = async (Matrix, mek, { args, reply }) => {
                 externalAdReply: {
                     showAdAttribution: true,
                     title: `${data.title}`,
-                    sourceUrl: "https://whatsapp.com/channel/0029VaWJMi3GehEE9e1YsI1S",
+                    sourceUrl: "https://chat.whatsapp.com/Jx7300IL1iVIaDUolVULBj",
                     body: `Live Cricket Score`
                 }
             },
