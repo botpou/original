@@ -1,0 +1,317 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Ethix-MD | WhatsApp Bot</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        :root {
+            --primary-color: #39ff14;
+            --secondary-color: #ff4081;
+            --bg-dark: #121212;
+            --text-dark: #fff;
+            --card-bg: rgba(255, 255, 255, 0.05);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: var(--bg-dark);
+            color: var(--text-dark);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            overflow-x: hidden;
+        }
+
+        .container {
+            flex: 1;
+            padding: 20px;
+            max-width: 800px;
+            margin: 0 auto;
+            width: 100%;
+        }
+
+        .glass-card {
+            background: var(--card-bg);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 30px;
+            margin: 20px 0;
+            box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.37);
+            border: 1px solid rgba(255, 255, 255, 0.18);
+        }
+
+        h1 {
+            font-size: 2.5em;
+            font-weight: 800;
+            background: linear-gradient(45deg, var(--primary-color), var(--secondary-color));
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+            text-align: center;
+            margin-bottom: 20px;
+            animation: gradient 5s ease infinite;
+        }
+
+        .status {
+            text-align: center;
+            color: var(--primary-color);
+            font-size: 1.1em;
+            margin: 15px 0;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.7; }
+        }
+
+        .input-group {
+            position: relative;
+            margin: 20px 0;
+        }
+
+        input[type="text"] {
+            width: 100%;
+            padding: 15px 20px;
+            border: 2px solid rgba(57, 255, 20, 0.3);
+            border-radius: 12px;
+            background: rgba(255, 255, 255, 0.05);
+            color: #fff;
+            font-size: 1em;
+            transition: all 0.3s ease;
+        }
+
+        input[type="text"]:focus {
+            border-color: var(--primary-color);
+            outline: none;
+            box-shadow: 0 0 15px rgba(57, 255, 20, 0.2);
+        }
+
+        button {
+            width: 100%;
+            padding: 15px;
+            border: none;
+            border-radius: 12px;
+            font-size: 1em;
+            font-weight: 600;
+            cursor: pointer;
+            background: linear-gradient(45deg, var(--primary-color), var(--secondary-color));
+            color: #000;
+            transition: transform 0.2s ease;
+        }
+
+        button:active {
+            transform: scale(0.98);
+        }
+
+        #pairingCodeDisplay {
+            margin: 20px 0;
+            padding: 15px;
+            background: rgba(57, 255, 20, 0.1);
+            border-radius: 12px;
+            text-align: center;
+            font-family: monospace;
+            font-size: 1.2em;
+            word-break: break-all;
+        }
+
+        .social-icons {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            margin: 30px 0;
+            flex-wrap: wrap;
+        }
+
+        .social-icon {
+            display: flex;
+            align-items: center;
+            padding: 10px 20px;
+            border-radius: 10px;
+            text-decoration: none;
+            color: #fff;
+            font-size: 0.9em;
+            transition: transform 0.2s ease;
+            gap: 8px;
+        }
+
+        .social-icon:active {
+            transform: scale(0.95);
+        }
+
+        .github { background: #333; }
+        .whatsapp { background: #25D366; }
+        .instagram { background: linear-gradient(45deg, #405DE6, #5851DB, #833AB4, #C13584, #E1306C, #FD1D1D); }
+        .coffee { background: #FF813F; }
+
+        .toast {
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0, 0, 0, 0.9);
+            color: #fff;
+            padding: 12px 24px;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+            z-index: 1000;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+
+        .toast.show {
+            opacity: 1;
+        }
+
+        footer {
+            text-align: center;
+            padding: 20px;
+            background: rgba(0, 0, 0, 0.3);
+            font-size: 0.9em;
+            margin-top: auto;
+        }
+
+        @media (max-width: 480px) {
+            .container {
+                padding: 15px;
+            }
+
+            h1 {
+                font-size: 2em;
+            }
+
+            .glass-card {
+                padding: 20px;
+            }
+
+            .social-icons {
+                flex-direction: column;
+            }
+
+            .social-icon {
+                width: 100%;
+                justify-content: center;
+            }
+        }
+
+        /* iOS specific styles */
+        @supports (-webkit-touch-callout: none) {
+            input[type="text"],
+            button {
+                -webkit-appearance: none;
+                appearance: none;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="glass-card">
+            <h1>Ethix-MD | WhatsApp Bot</h1>
+            <p style="text-align: center;">Welcome to the WhatsApp Multi-Auth bot service.<br>Automate your conversations easily with Ethix-MD.</p>
+            <div class="status">
+                <i class="fas fa-circle" style="color: var(--primary-color); font-size: 0.8em;"></i>
+                Status: Auto status seen active
+            </div>
+
+            <form id="pairingForm">
+                <div class="input-group">
+                    <input type="text" id="phoneNumber" name="phoneNumber" placeholder="Enter Phone Number" required />
+                </div>
+                <button type="submit">Generate Pairing Code</button>
+            </form>
+
+            <div id="pairingCodeDisplay"></div>
+            <button id="copyButton" style="display:none;">
+                <i class="fas fa-copy"></i> Copy Code
+            </button>
+        </div>
+
+        <div class="glass-card">
+            <h2 style="text-align: center; margin-bottom: 15px;">About Ethix-MD</h2>
+            <p style="line-height: 1.6;">This is an auto status seen bot that allows you to automate WhatsApp interactions without any deployment hassle. Simply connect multiple accounts directly and start using it — free of charge!</p>
+        </div>
+
+        <div class="social-icons">
+            <a href="https://github.com/Ethix-Xsid" target="_blank" class="social-icon github">
+                <i class="fab fa-github"></i> GitHub
+            </a>
+            <a href="https://whatsapp.com/channel/0029VaWJMi3GehEE9e1YsI1S" target="_blank" class="social-icon whatsapp">
+                <i class="fab fa-whatsapp"></i> WhatsApp
+            </a>
+            <a href="https://www.instagram.com/ethix_xsid/profilecard/?igsh=MXVwaHZ5Zm9keG80aA==" target="_blank" class="social-icon instagram">
+                <i class="fab fa-instagram"></i> Instagram
+            </a>
+            <a href="https://www.buymeacoffee.com/ethixbhai" target="_blank" class="social-icon coffee">
+                <i class="fas fa-coffee"></i> Buy me a coffee
+            </a>
+        </div>
+    </div>
+
+    <div id="toast" class="toast"></div>
+
+    <footer>
+        <p>&copy; 2024 Ethix-MD. All rights reserved.</p>
+        <p style="margin-top: 5px; font-size: 0.9em; color: #888;">Developed with ❤️ by Ethix-Xsid</p>
+    </footer>
+
+    <script>
+        document.getElementById('pairingForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const phoneNumber = document.getElementById('phoneNumber').value;
+
+            if (!phoneNumber) {
+                showToast("Please enter a valid phone number!");
+                return;
+            }
+
+            try {
+                const response = await fetch('/pairing-code', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ phoneNumber })
+                });
+
+                const data = await response.json();
+
+                if (data.pairingCode) {
+                    document.getElementById('pairingCodeDisplay').innerText = 'Pairing Code: ' + data.pairingCode;
+                    document.getElementById('copyButton').style.display = 'block';
+                } else {
+                    showToast('Error generating pairing code.');
+                }
+            } catch (error) {
+                showToast('Network error. Please try again.');
+            }
+        });
+
+        document.getElementById('copyButton').addEventListener('click', () => {
+            const codeText = document.getElementById('pairingCodeDisplay').innerText.replace('Pairing Code: ', '');
+            navigator.clipboard.writeText(codeText).then(() => {
+                showToast('Pairing Code copied to clipboard!');
+            }).catch(() => {
+                showToast('Failed to copy code. Please try again.');
+            });
+        });
+
+        function showToast(message) {
+            const toast = document.getElementById('toast');
+            toast.textContent = message;
+            toast.classList.add('show');
+            setTimeout(() => {
+                toast.classList.remove('show');
+            }, 3000);
+        }
+    </script>
+</body>
+</html>
