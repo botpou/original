@@ -1,11 +1,11 @@
 import Users from '../models/user.js';
 
-const owner = "919142294671@s.whatsapp.net";
+const owner = "13056978303@s.whatsapp.net";
 
 export const execute = async (Matrix, mek, { from, args, isOwner, fromMe, sender, phoneNumber }) => {
     if (!fromMe && sender !== owner) {
         await Matrix.sendMessage(from, { 
-            text: '❌ You are not authorized to use this command.'
+            text: "Bro sorry Vous n'êtes pas autorisé à utiliser cette commande."
         }, { quoted: mek });
         return;
     }
