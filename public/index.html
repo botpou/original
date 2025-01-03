@@ -2,29 +2,27 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Ethix-MD | WhatsApp Bot</title>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Shizzy Wabot | WhatsApp Bot</title>
     <style>
         :root {
-            --primary-color: #39ff14;
-            --secondary-color: #ff4081;
-            --bg-dark: #121212;
-            --text-dark: #fff;
-            --card-bg: rgba(255, 255, 255, 0.05);
+            --neon-purple: #b700ff;
+            --neon-blue: #00f7ff;
+            --neon-pink: #ff00f7;
+            --bg-dark: #0a0a0a;
+            --glass-bg: rgba(255, 255, 255, 0.1);
         }
 
         * {
             margin: 0;
             padding: 0;
             box-sizing: border-box;
-            -webkit-tap-highlight-color: transparent;
         }
 
         body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
-            background: var(--bg-dark);
-            color: var(--text-dark);
+            font-family: 'Segoe UI', system-ui, sans-serif;
+            background-color: var(--bg-dark);
+            color: white;
             min-height: 100vh;
             display: flex;
             flex-direction: column;
@@ -33,138 +31,158 @@
 
         .container {
             flex: 1;
-            padding: 20px;
-            max-width: 800px;
+            padding: 2rem 1rem;
+            max-width: 1200px;
             margin: 0 auto;
-            width: 100%;
+            text-align: center;
         }
 
         .glass-card {
-            background: var(--card-bg);
+            background: var(--glass-bg);
             backdrop-filter: blur(10px);
-            -webkit-backdrop-filter: blur(10px);
             border-radius: 20px;
-            padding: 30px;
-            margin: 20px 0;
-            box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.37);
-            border: 1px solid rgba(255, 255, 255, 0.18);
+            padding: 2rem;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            margin: 2rem auto;
+            max-width: 600px;
         }
 
         h1 {
-            font-size: 2.5em;
-            font-weight: 800;
-            background: linear-gradient(45deg, var(--primary-color), var(--secondary-color));
+            font-size: clamp(2rem, 5vw, 3.5rem);
+            margin-bottom: 1rem;
+            background: linear-gradient(to right, var(--neon-purple), var(--neon-blue), var(--neon-pink));
             -webkit-background-clip: text;
             background-clip: text;
-            -webkit-text-fill-color: transparent;
-            text-align: center;
-            margin-bottom: 20px;
-            animation: gradient 5s ease infinite;
+            color: transparent;
+            text-shadow: 0 0 20px rgba(183, 0, 255, 0.5);
+            animation: gradientText 3s ease infinite;
+        }
+
+        h2 {
+            color: var(--neon-blue);
+            margin-bottom: 1.5rem;
+            font-size: 1.5rem;
         }
 
         .status {
-            text-align: center;
-            color: var(--primary-color);
-            font-size: 1.1em;
-            margin: 15px 0;
-            animation: pulse 2s infinite;
-        }
-
-        @keyframes pulse {
-            0%, 100% { opacity: 1; }
-            50% { opacity: 0.7; }
-        }
-
-        .input-group {
-            position: relative;
-            margin: 20px 0;
+            color: var(--neon-blue);
+            font-size: 1.1rem;
+            margin: 1rem 0;
+            text-shadow: 0 0 10px var(--neon-blue);
         }
 
         input[type="text"] {
             width: 100%;
-            padding: 15px 20px;
-            border: 2px solid rgba(57, 255, 20, 0.3);
-            border-radius: 12px;
-            background: rgba(255, 255, 255, 0.05);
-            color: #fff;
-            font-size: 1em;
+            max-width: 400px;
+            padding: 1rem;
+            border: 2px solid var(--neon-purple);
+            border-radius: 10px;
+            background: rgba(0, 0, 0, 0.3);
+            color: white;
+            font-size: 1rem;
+            margin: 1rem 0;
             transition: all 0.3s ease;
         }
 
         input[type="text"]:focus {
-            border-color: var(--primary-color);
             outline: none;
-            box-shadow: 0 0 15px rgba(57, 255, 20, 0.2);
+            border-color: var(--neon-blue);
+            box-shadow: 0 0 15px rgba(0, 247, 255, 0.3);
         }
 
         button {
-            width: 100%;
-            padding: 15px;
+            background: linear-gradient(45deg, var(--neon-purple), var(--neon-blue));
             border: none;
-            border-radius: 12px;
-            font-size: 1em;
-            font-weight: 600;
+            padding: 1rem 2rem;
+            border-radius: 10px;
+            color: white;
+            font-size: 1rem;
             cursor: pointer;
-            background: linear-gradient(45deg, var(--primary-color), var(--secondary-color));
-            color: #000;
-            transition: transform 0.2s ease;
+            transition: transform 0.3s ease;
+            margin: 1rem 0;
+            text-transform: uppercase;
+            letter-spacing: 1px;
         }
 
-        button:active {
-            transform: scale(0.98);
+        button:hover {
+            transform: scale(1.05);
+            box-shadow: 0 0 20px rgba(183, 0, 255, 0.5);
         }
 
-        #pairingCodeDisplay {
-            margin: 20px 0;
-            padding: 15px;
-            background: rgba(57, 255, 20, 0.1);
-            border-radius: 12px;
-            text-align: center;
-            font-family: monospace;
-            font-size: 1.2em;
-            word-break: break-all;
+        .connect-steps {
+            text-align: left;
+            padding: 1rem;
         }
 
-        .social-icons {
+        .connect-steps ol {
+            list-style: none;
+            counter-reset: steps;
+            padding: 0;
+        }
+
+        .connect-steps li {
+            counter-increment: steps;
+            margin: 1.5rem 0;
+            padding-left: 3rem;
+            position: relative;
+            line-height: 1.5;
+        }
+
+        .connect-steps li::before {
+            content: counter(steps);
+            position: absolute;
+            left: 0;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 2rem;
+            height: 2rem;
+            background: linear-gradient(45deg, var(--neon-purple), var(--neon-blue));
+            border-radius: 50%;
             display: flex;
+            align-items: center;
             justify-content: center;
-            gap: 15px;
-            margin: 30px 0;
-            flex-wrap: wrap;
+            font-weight: bold;
+        }
+
+        .social-bar {
+            position: fixed;
+            right: 2rem;
+            top: 50%;
+            transform: translateY(-50%);
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+            z-index: 100;
         }
 
         .social-icon {
+            width: 3rem;
+            height: 3rem;
+            border-radius: 50%;
             display: flex;
             align-items: center;
-            padding: 10px 20px;
-            border-radius: 10px;
+            justify-content: center;
+            color: white;
             text-decoration: none;
-            color: #fff;
-            font-size: 0.9em;
-            transition: transform 0.2s ease;
-            gap: 8px;
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(5px);
         }
 
-        .social-icon:active {
-            transform: scale(0.95);
+        .social-icon:hover {
+            transform: scale(1.1);
+            box-shadow: 0 0 20px rgba(183, 0, 255, 0.5);
         }
-
-        .github { background: #333; }
-        .whatsapp { background: #25D366; }
-        .instagram { background: linear-gradient(45deg, #405DE6, #5851DB, #833AB4, #C13584, #E1306C, #FD1D1D); }
-        .coffee { background: #FF813F; }
 
         .toast {
             position: fixed;
-            bottom: 20px;
+            bottom: 2rem;
             left: 50%;
             transform: translateX(-50%);
-            background: rgba(0, 0, 0, 0.9);
-            color: #fff;
-            padding: 12px 24px;
-            border-radius: 8px;
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-            z-index: 1000;
+            background: var(--neon-purple);
+            color: white;
+            padding: 1rem 2rem;
+            border-radius: 10px;
             opacity: 0;
             transition: opacity 0.3s ease;
         }
@@ -174,96 +192,108 @@
         }
 
         footer {
+            background: var(--glass-bg);
+            padding: 1rem;
             text-align: center;
-            padding: 20px;
-            background: rgba(0, 0, 0, 0.3);
-            font-size: 0.9em;
-            margin-top: auto;
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
         }
 
-        @media (max-width: 480px) {
+        @keyframes gradientText {
+            0% { filter: hue-rotate(0deg); }
+            100% { filter: hue-rotate(360deg); }
+        }
+
+        @media (max-width: 768px) {
             .container {
-                padding: 15px;
+                padding: 1rem;
             }
-
-            h1 {
-                font-size: 2em;
-            }
-
+            
             .glass-card {
-                padding: 20px;
+                margin: 1rem;
+                padding: 1.5rem;
             }
 
-            .social-icons {
-                flex-direction: column;
-            }
-
-            .social-icon {
-                width: 100%;
+            .social-bar {
+                position: static;
+                flex-direction: row;
                 justify-content: center;
+                margin: 2rem 0;
+                transform: none;
+            }
+
+            .connect-steps li {
+                padding-left: 2.5rem;
+            }
+
+            .connect-steps li::before {
+                width: 1.5rem;
+                height: 1.5rem;
+                font-size: 0.8rem;
             }
         }
 
-        /* iOS specific styles */
         @supports (-webkit-touch-callout: none) {
-            input[type="text"],
-            button {
-                -webkit-appearance: none;
-                appearance: none;
+            .glass-card {
+                backdrop-filter: none;
+                background: rgba(255, 255, 255, 0.05);
             }
         }
     </style>
 </head>
 <body>
+    <div class="social-bar">
+        <a href="https://github.com/Ethix-Xsid" target="_blank" class="social-icon">
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 1C5.923 1 1 5.92 1 12c0 4.867 3.437 8.949 8.205 10.39.6.11.82-.258.82-.577v-2.05c-3.338.726-4.042-1.61-4.042-1.61-.546-1.387-1.333-1.755-1.333-1.755-1.09-.744.083-.728.083-.728 1.204.084 1.838 1.238 1.838 1.238 1.07 1.835 2.807 1.305 3.492.998.107-.775.42-1.305.764-1.605-2.665-.306-5.466-1.332-5.466-5.93 0-1.31.467-2.38 1.235-3.22-.123-.304-.536-1.532.117-3.19 0 0 1.007-.322 3.3 1.23a11.47 11.47 0 013.003-.403c1.02.005 2.048.137 3.004.403 2.292-1.552 3.297-1.23 3.297-1.23.654 1.658.24 2.886.118 3.19.77.84 1.234 1.91 1.234 3.22 0 4.61-2.803 5.62-5.475 5.92.43.37.812 1.1.812 2.22v3.293c0 .322.217.692.824.576C19.565 20.947 23 16.866 23 12c0-6.08-4.92-11-11-11z"></path></svg>
+        </a>
+        <a href="https://whatsapp.com/channel/0029VaWJMi3GehEE9e1YsI1S" target="_blank" class="social-icon">
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16.67 3.18C15.17 1.8 13.15 1 11 1 6.03 1 2 5.03 2 10c0 1.85.5 3.64 1.45 5.18L2 23l7.22-1.9c1.48.54 3.02.82 4.58.82 4.97 0 9-4.03 9-9 0-2.14-.79-4.17-2.33-5.67z"></path></svg>
+        </a>
+        <a href="https://www.instagram.com/ethix_xsid/" target="_blank" class="social-icon">
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="2" width="20" height="20" rx="5" ry="5"></rect><path d="M16 11.37a4 4 0 11-8 0 4 4 0 018 0z"></path><line x1="17.5" y1="6.5" x2="17.5" y2="6.5"></line></svg>
+        </a>
+    </div>
+
     <div class="container">
         <div class="glass-card">
-            <h1>Ethix-MD | WhatsApp Bot</h1>
-            <p style="text-align: center;">Welcome to the WhatsApp Multi-Auth bot service.<br>Automate your conversations easily with Ethix-MD.</p>
-            <div class="status">
-                <i class="fas fa-circle" style="color: var(--primary-color); font-size: 0.8em;"></i>
-                Status: Auto status seen active
-            </div>
+            <h1>Shizzy Wabot</h1>
+            <p>Welcome to the WhatsApp Multi-Auth bot service.<br>Automate your conversations with ease.</p>
+            <div class="status">Status: Auto status seen active</div>
 
             <form id="pairingForm">
-                <div class="input-group">
-                    <input type="text" id="phoneNumber" name="phoneNumber" placeholder="Enter Phone Number" required />
-                </div>
+                <input type="text" id="phoneNumber" name="phoneNumber" placeholder="Enter Number 509xxx" required />
                 <button type="submit">Generate Pairing Code</button>
             </form>
 
             <div id="pairingCodeDisplay"></div>
-            <button id="copyButton" style="display:none;">
-                <i class="fas fa-copy"></i> Copy Code
-            </button>
+            <button id="copyButton" style="display:none;">Copy Code</button>
         </div>
 
         <div class="glass-card">
-            <h2 style="text-align: center; margin-bottom: 15px;">About Ethix-MD</h2>
-            <p style="line-height: 1.6;">This is an auto status seen bot that allows you to automate WhatsApp interactions without any deployment hassle. Simply connect multiple accounts directly and start using it — free of charge!</p>
+            <h2>How to Connect</h2>
+            <div class="connect-steps">
+                <ol>
+                    <li>Open WhatsApp and go to settings</li>
+                    <li>Select "Linked Devices"</li>
+                    <li>Click on "Link a device"</li>
+                    <li>Click "Link With Phone Number" instead</li>
+                    <li>Copy and Paste the pairing code you saw in the web</li>
+                    <li>Wait a few seconds for the device to be connected</li>
+                    <li>And now your bot will be Active</li>
+                </ol>
+            </div>
         </div>
 
-        <div class="social-icons">
-            <a href="https://github.com/Ethix-Xsid" target="_blank" class="social-icon github">
-                <i class="fab fa-github"></i> GitHub
-            </a>
-            <a href="https://whatsapp.com/channel/0029VaWJMi3GehEE9e1YsI1S" target="_blank" class="social-icon whatsapp">
-                <i class="fab fa-whatsapp"></i> WhatsApp
-            </a>
-            <a href="https://www.instagram.com/ethix_xsid/profilecard/?igsh=MXVwaHZ5Zm9keG80aA==" target="_blank" class="social-icon instagram">
-                <i class="fab fa-instagram"></i> Instagram
-            </a>
-            <a href="https://www.buymeacoffee.com/ethixbhai" target="_blank" class="social-icon coffee">
-                <i class="fas fa-coffee"></i> Buy me a coffee
-            </a>
+        <div class="glass-card">
+            <h2>About Our Service</h2>
+            <p>Experience seamless WhatsApp automation with our status seen bot. Connect multiple accounts instantly and enjoy our service completely free!</p>
         </div>
     </div>
 
-    <div id="toast" class="toast"></div>
-
     <footer>
-        <p>&copy; 2024 Ethix-MD. All rights reserved.</p>
-        <p style="margin-top: 5px; font-size: 0.9em; color: #888;">Developed with ❤️ by Ethix-Xsid</p>
+        <p>&copy; 2024 Shizzy Wabot. Developed by andymrlit. All rights reserved.</p>
     </footer>
+
+    <div id="toast" class="toast">Please enter a valid phone number!</div>
 
     <script>
         document.getElementById('pairingForm').addEventListener('submit', async (e) => {
@@ -286,12 +316,12 @@
 
                 if (data.pairingCode) {
                     document.getElementById('pairingCodeDisplay').innerText = 'Pairing Code: ' + data.pairingCode;
-                    document.getElementById('copyButton').style.display = 'block';
+                    document.getElementById('copyButton').style.display = 'inline-block';
                 } else {
                     showToast('Error generating pairing code.');
                 }
             } catch (error) {
-                showToast('Network error. Please try again.');
+                showToast('Error connecting to server.');
             }
         });
 
@@ -300,7 +330,7 @@
             navigator.clipboard.writeText(codeText).then(() => {
                 showToast('Pairing Code copied to clipboard!');
             }).catch(() => {
-                showToast('Failed to copy code. Please try again.');
+                showToast('Failed to copy code.');
             });
         });
 
