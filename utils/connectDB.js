@@ -1,6 +1,6 @@
 import mongoose from 'mongoose';
 
-const mongoDB = "mongodb+srv:// maxiiiii:yooo6916@cluster0.qseh i0c.mongodb.net/? retryWrites=true&w=majority";
+const mongoDB = "mongodb+srv://maxiiiii:yooo6916@cluster0.qsehi0c.mongodb.net/?retryWrites=true&w=majority";
 
 let isConnected = false;
 
