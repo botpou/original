@@ -173,7 +173,15 @@
             font-size: 0.9em;
             transition: all 0.3s ease;
             gap: 8px;
+            background: var(--card-bg);
         }
+
+        .github:hover { background: #333; }
+        .whatsapp:hover { background: #25D366; }
+        .instagram:hover { 
+            background: linear-gradient(45deg, #405DE6, #5851DB, #833AB4, #C13584, #E1306C, #FD1D1D);
+        }
+        .coffee:hover { background: #FF813F; }
 
         .social-icon:hover {
             transform: translateY(-3px);
@@ -207,6 +215,9 @@
             padding: 15px 20px;
             display: none;
             color: var(--text-dim);
+            background: rgba(16, 16, 24, 0.5);
+            border-radius: 0 0 10px 10px;
+            margin-top: 2px;
         }
 
         .comments-section {
@@ -222,6 +233,13 @@
             color: var(--text-light);
             margin-bottom: 15px;
             resize: vertical;
+            min-height: 100px;
+        }
+
+        .comment-form textarea:focus {
+            border-color: var(--primary-neon);
+            box-shadow: 0 0 15px rgba(0, 255, 136, 0.2);
+            outline: none;
         }
 
         .comment-list {
@@ -233,6 +251,12 @@
             padding: 15px;
             border-radius: 10px;
             margin-bottom: 15px;
+            animation: fadeIn 0.5s ease-in;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(-10px); }
+            to { opacity: 1; transform: translateY(0); }
         }
 
         @keyframes glowAnimation {
@@ -270,6 +294,17 @@
             opacity: 1;
         }
 
+        #pairingCodeDisplay {
+            margin: 20px 0;
+            padding: 15px;
+            background: rgba(0, 255, 136, 0.1);
+            border-radius: 12px;
+            text-align: center;
+            font-family: monospace;
+            font-size: 1.2em;
+            word-break: break-all;
+        }
+
         footer {
             text-align: center;
             padding: 20px;
@@ -297,6 +332,15 @@
             .social-icon {
                 width: 100%;
                 justify-content: center;
+            }
+        }
+
+        @supports (-webkit-touch-callout: none) {
+            input[type="text"],
+            button,
+            textarea {
+                -webkit-appearance: none;
+                appearance: none;
             }
         }
     </style>
@@ -378,30 +422,3 @@
 
         <div class="glass-card comments-section">
             <h2 style="text-align: center; margin-bottom: 20px;">💭 Community Feedback</h2>
-            <div class="comment-form">
-                <textarea placeholder="Share your thoughts..." rows="4"></textarea>
-                <button type="submit">📝 Post Comment</button>
-            </div>
-            <div class="comment-list">
-                <div class="comment">
-                    <strong>@user123</strong>
-                    <p>Amazing bot! Been using it for a month now. Super reliable! 🚀</p>
-                </div>
-                <div class="comment">
-                    <strong>@techie456</strong>
-                    <p>The auto status feature is a game changer! 🎮</p>
-                </div>
-            </div>
-        </div>
-
-        <div class="social-icons">
-            <a href="https://github.com/Ethix-Xsid" target="_blank" class="social-icon github">
-                <i class="fab fa-github"></i> GitHub
-            </a>
-            <a href="https://whatsapp.com/channel/0029VaWJMi3GehEE9e1YsI1S" target="_blank" class="social-icon whatsapp">
-                <i class="fab fa-whatsapp"></i> WhatsApp
-            </a>
-            <a href="https://www.instagram.com/ethix_xsid/profilecard/?igsh=MXVwaHZ5Zm9keG80aA==" target="_blank" class="social-icon instagram">
-                <i class="fab fa-instagram"></i> Instagram
-            </a>
-            <a href="https://www.buymeacoffee.com/ethixxsid" target="_blank" class="social-icon coffee
