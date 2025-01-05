@@ -3,433 +3,238 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>STATUT BOT AUTO SEEN | Professional Dashboard</title>
+    <title>ANDY MRLIT BOT | WhatsApp Bot</title>
     <style>
         :root {
-            --neon-primary: #00ffdd;
-            --neon-secondary: #ff00ff;
-            --neon-accent: #8a2be2;
-            --bg-dark: #0a0a1f;
-            --glass-bg: rgba(10, 10, 31, 0.8);
-            --text-primary: #ffffff;
-            --text-secondary: #b3b3cc;
-        }
-
-        @keyframes neonPulse {
-            0% { box-shadow: 0 0 10px var(--neon-primary), 0 0 20px var(--neon-primary); }
-            50% { box-shadow: 0 0 15px var(--neon-primary), 0 0 30px var(--neon-primary); }
-            100% { box-shadow: 0 0 10px var(--neon-primary), 0 0 20px var(--neon-primary); }
-        }
-
-        @keyframes gradientFlow {
-            0% { background-position: 0% 50%; }
-            50% { background-position: 100% 50%; }
-            100% { background-position: 0% 50%; }
-        }
-
-        @keyframes floatAnimation {
-            0% { transform: translateY(0); }
-            50% { transform: translateY(-10px); }
-            100% { transform: translateY(0); }
+            --primary-color: #39ff14;
+            --secondary-color: #ff4081;
+            --bg-dark: #000000;
+            --text-dark: #fff;
+            --ios-blur: saturate(180%) blur(20px);
         }
 
         * {
             margin: 0;
             padding: 0;
             box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
         }
 
         body {
-            font-family: 'Segoe UI', system-ui, sans-serif;
-            background: linear-gradient(135deg, var(--bg-dark), #1a1a3f);
-            color: var(--text-primary);
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: var(--bg-dark);
+            color: var(--text-dark);
             min-height: 100vh;
-            line-height: 1.6;
-        }
-
-        .hero-section {
-            min-height: 60vh;
             display: flex;
             flex-direction: column;
-            justify-content: center;
-            align-items: center;
-            text-align: center;
-            padding: 4rem 2rem;
-            background: linear-gradient(45deg, rgba(0,0,0,0.7), rgba(10,10,31,0.7)),
-                        url('/api/placeholder/1920/1080');
-            background-size: cover;
-            background-position: center;
-            position: relative;
-            overflow: hidden;
-        }
-
-        .hero-content {
-            max-width: 800px;
-            animation: floatAnimation 3s ease-in-out infinite;
-        }
-
-        h1 {
-            font-size: 3.5rem;
-            margin-bottom: 1.5rem;
-            background: linear-gradient(45deg, var(--neon-primary), var(--neon-secondary), var(--neon-accent));
-            -webkit-background-clip: text;
-            background-clip: text;
-            color: transparent;
-            background-size: 200% 200%;
-            animation: gradientFlow 5s ease infinite;
-        }
-
-        .description {
-            font-size: 1.2rem;
-            color: var(--text-secondary);
-            margin-bottom: 2rem;
-            max-width: 600px;
-            margin: 0 auto 2rem;
         }
 
         .container {
-            max-width: 1400px;
+            flex: 1;
+            padding: 20px;
+            max-width: 1200px;
             margin: 0 auto;
-            padding: 2rem;
+            animation: fadeIn 1s ease-out;
         }
 
-        .stats-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-            gap: 1.5rem;
-            margin: -5rem auto 2rem;
-            position: relative;
-            z-index: 10;
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
         }
 
-        .stat-card {
-            background: var(--glass-bg);
-            backdrop-filter: blur(10px);
+        .glass-morphism {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: var(--ios-blur);
+            -webkit-backdrop-filter: var(--ios-blur);
             border-radius: 20px;
-            padding: 2rem;
-            text-align: center;
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            transition: transform 0.3s ease, box-shadow 0.3s ease;
-            animation: neonPulse 2s infinite;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            padding: 20px;
+            margin: 20px 0;
         }
 
-        .stat-card:hover {
-            transform: translateY(-10px);
-        }
-
-        .stat-value {
-            font-size: 2.5rem;
-            font-weight: bold;
-            background: linear-gradient(45deg, var(--neon-primary), var(--neon-secondary));
+        h1 {
+            font-size: clamp(2em, 5vw, 3.5em);
+            background: linear-gradient(90deg, var(--primary-color), var(--secondary-color));
             -webkit-background-clip: text;
             background-clip: text;
             color: transparent;
-            margin: 0.5rem 0;
-        }
-
-        .stat-label {
-            color: var(--text-secondary);
-            font-size: 1.1rem;
-            text-transform: uppercase;
-            letter-spacing: 2px;
-        }
-
-        .pairing-section {
-            background: var(--glass-bg);
-            border-radius: 20px;
-            padding: 3rem;
-            margin: 2rem 0;
             text-align: center;
+            animation: titleGlow 2s infinite alternate;
+        }
+
+        @keyframes titleGlow {
+            from { text-shadow: 0 0 20px rgba(57, 255, 20, 0.5); }
+            to { text-shadow: 0 0 40px rgba(255, 64, 129, 0.8); }
         }
 
         input[type="text"] {
             width: 100%;
-            max-width: 400px;
-            padding: 1.2rem;
-            border: 2px solid var(--neon-primary);
+            padding: 15px;
             border-radius: 12px;
-            background: rgba(10, 10, 31, 0.6);
-            color: var(--text-primary);
-            font-size: 1.1rem;
-            margin: 1rem 0;
+            border: 2px solid rgba(255, 255, 255, 0.2);
+            background: rgba(255, 255, 255, 0.05);
+            color: #fff;
+            font-size: 1em;
             transition: all 0.3s ease;
+            margin: 10px 0;
         }
 
         input[type="text"]:focus {
+            border-color: var(--primary-color);
             outline: none;
-            border-color: var(--neon-secondary);
-            box-shadow: 0 0 20px rgba(0, 255, 221, 0.3);
+            box-shadow: 0 0 20px rgba(57, 255, 20, 0.3);
         }
 
         button {
-            background: linear-gradient(45deg, var(--neon-primary), var(--neon-secondary));
+            width: 100%;
+            padding: 15px;
             border: none;
-            padding: 1.2rem 2.5rem;
             border-radius: 12px;
-            color: var(--bg-dark);
-            font-size: 1.1rem;
+            background: linear-gradient(45deg, var(--primary-color), var(--secondary-color));
+            color: #fff;
             font-weight: bold;
+            font-size: 1em;
             cursor: pointer;
-            transition: all 0.3s ease;
-            text-transform: uppercase;
-            letter-spacing: 2px;
-            margin: 1rem 0;
+            transition: transform 0.3s ease;
+            animation: buttonPulse 2s infinite;
         }
 
-        button:hover {
-            transform: scale(1.05);
-            box-shadow: 0 0 30px rgba(0, 255, 221, 0.4);
+        @keyframes buttonPulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.02); }
+            100% { transform: scale(1); }
         }
 
-        .faq-section {
-            padding: 4rem 0;
+        .social-icons {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            margin: 20px 0;
+            flex-wrap: wrap;
         }
 
-        .faq-container {
-            max-width: 800px;
-            margin: 0 auto;
-        }
-
-        .faq-item {
-            background: var(--glass-bg);
-            border-radius: 15px;
-            margin: 1rem 0;
-            padding: 1.5rem;
-            cursor: pointer;
-            transition: all 0.3s ease;
-        }
-
-        .faq-item:hover {
-            transform: translateX(10px);
-            box-shadow: 0 0 20px rgba(0, 255, 221, 0.2);
-        }
-
-        .faq-question {
-            font-size: 1.2rem;
-            font-weight: bold;
-            color: var(--neon-primary);
-            margin-bottom: 1rem;
-        }
-
-        .faq-answer {
-            color: var(--text-secondary);
-            display: none;
-            padding-top: 1rem;
-            border-top: 1px solid rgba(255, 255, 255, 0.1);
-        }
-
-        .faq-item.active .faq-answer {
-            display: block;
-        }
-
-        .comments-section {
-            padding: 4rem 0;
-            background: var(--glass-bg);
-            border-radius: 20px;
-            margin: 2rem 0;
-        }
-
-        .comment-card {
-            background: rgba(255, 255, 255, 0.05);
-            border-radius: 15px;
-            padding: 1.5rem;
-            margin: 1rem 0;
-            border: 1px solid rgba(255, 255, 255, 0.1);
-        }
-
-        .comment-header {
+        .social-icon {
+            padding: 12px 20px;
+            border-radius: 12px;
+            text-decoration: none;
+            color: #fff;
             display: flex;
             align-items: center;
-            margin-bottom: 1rem;
+            gap: 8px;
+            transition: transform 0.3s ease;
+            background: rgba(255, 255, 255, 0.1);
         }
 
-        .comment-avatar {
-            width: 40px;
-            height: 40px;
-            border-radius: 50%;
-            background: linear-gradient(45deg, var(--neon-primary), var(--neon-secondary));
-            margin-right: 1rem;
+        .social-icon:hover {
+            transform: translateY(-3px);
         }
 
-        .comment-author {
-            font-weight: bold;
-            color: var(--neon-primary);
-        }
-
-        .comment-date {
-            color: var(--text-secondary);
-            font-size: 0.9rem;
-            margin-left: auto;
-        }
-
-        .comment-content {
-            color: var(--text-secondary);
-            line-height: 1.6;
-        }
-
-        footer {
-            background: var(--glass-bg);
-            padding: 2rem;
+        #pairingCodeDisplay {
+            font-size: 1.2em;
             text-align: center;
-            margin-top: 4rem;
-            border-top: 1px solid rgba(255, 255, 255, 0.1);
+            margin: 20px 0;
+            padding: 15px;
+            animation: codeGlow 1.5s infinite alternate;
+        }
+
+        @keyframes codeGlow {
+            from { color: var(--primary-color); }
+            to { color: var(--secondary-color); }
         }
 
         .toast {
             position: fixed;
-            bottom: 2rem;
+            bottom: 20px;
             left: 50%;
             transform: translateX(-50%);
-            background: linear-gradient(45deg, var(--neon-primary), var(--neon-secondary));
-            color: var(--bg-dark);
-            padding: 1rem 2rem;
+            padding: 15px 25px;
             border-radius: 12px;
+            background: rgba(0, 0, 0, 0.9);
+            color: #fff;
+            box-shadow: 0 0 20px rgba(0, 0, 0, 0.3);
             opacity: 0;
             transition: opacity 0.3s ease;
             z-index: 1000;
-            font-weight: bold;
         }
 
         .toast.show {
             opacity: 1;
         }
 
+        footer {
+            text-align: center;
+            padding: 20px;
+            background: rgba(0, 0, 0, 0.8);
+            backdrop-filter: var(--ios-blur);
+            -webkit-backdrop-filter: var(--ios-blur);
+        }
+
         @media (max-width: 768px) {
-            h1 {
-                font-size: 2.5rem;
-            }
-
             .container {
-                padding: 1rem;
+                padding: 15px;
             }
-
-            .stats-grid {
-                margin-top: -2rem;
+            
+            .social-icons {
+                flex-direction: column;
+                align-items: stretch;
             }
-
-            .stat-card {
-                padding: 1.5rem;
+            
+            .social-icon {
+                justify-content: center;
             }
+        }
 
-            .pairing-section {
-                padding: 2rem 1rem;
-            }
-
-            .hero-section {
-                min-height: 50vh;
-                padding: 2rem 1rem;
+        @media (prefers-color-scheme: dark) {
+            :root {
+                --bg-dark: #000000;
             }
         }
     </style>
 </head>
 <body>
-    <section class="hero-section">
-        <div class="hero-content">
-            <h1>STATUT BOT AUTO SEEN</h1>
-            <p class="description">
-                Experience the next generation of WhatsApp automation with our cutting-edge status seen bot. 
-                Streamline your messaging experience with automated status views and instant notifications.
-                Perfect for businesses and power users who need to stay connected.
-            </p>
-        </div>
-    </section>
-
     <div class="container">
-        <div class="stats-grid">
-            <div class="stat-card">
-                <div class="stat-label">Uptime</div>
-                <div class="stat-value">99.9%</div>
-            </div>
-            <div class="stat-card">
-                <div class="stat-label">Active Users</div>
-                <div class="stat-value">1.2K</div>
-            </div>
-            <div class="stat-card">
-                <div class="stat-label">Status Read</div>
-                <div class="stat-value">5.8M</div>
-            </div>
-            <div class="stat-card">
-                <div class="stat-label">Confidence</div>
-                <div class="stat-value">100%</div>
-            </div>
-        </div>
+        <h1>ANDY MRLIT BOT</h1>
+        <div class="glass-morphism">
+            <p style="text-align: center; margin-bottom: 20px;">Welcome to the WhatsApp Multi-Auth bot service.<br>Automate your conversations easily with ANDY MRLIT BOT.</p>
+            <div class="status" style="text-align: center; color: var(--primary-color);">Status: Auto status seen active</div>
 
-        <div class="pairing-section">
             <form id="pairingForm">
-                <input type="text" id="phoneNumber" name="phoneNumber" placeholder="Enter Number 509xxx" required />
+                <input type="text" id="phoneNumber" name="phoneNumber" placeholder="Enter Phone Number" required />
                 <button type="submit">Generate Pairing Code</button>
             </form>
-            <div id="pairingCodeDisplay"></div>
+
+            <div id="pairingCodeDisplay" class="glass-morphism"></div>
             <button id="copyButton" style="display:none;">Copy Code</button>
         </div>
 
-        <div class="faq-section">
-            <h2>Frequently Asked Questions</h2>
-            <div class="faq-container">
-                <div class="faq-item">
-                    <div class="faq-question">How does the auto-seen feature work?</div>
-                    <div class="faq-answer">
-                        Our bot automatically marks status updates as seen using WhatsApp's official API, 
-                        ensuring reliable and instant status viewing without manual intervention.
-                    </div>
-                </div>
-                <div class="faq-item">
-                    <div class="faq-question">Is it safe to use this bot?</div>
-                    <div class="faq-answer">
-                        Yes, our bot operates within WhatsApp's guidelines and uses official API endpoints. 
-                        Your account security and privacy are our top priorities.
-                    </div>
-                </div>
-                <div class="faq-item">
-                    <div class="faq-question">Can I use multiple accounts?</div>
-                    <div class="faq-answer">
-                        Yes, you can connect multiple WhatsApp accounts to our bot service. Each account 
-                        will need its own pairing code for security purposes.
-                    </div>
-                </div>
-            </div>
+        <div class="glass-morphism" id="about">
+            <h2 style="margin-bottom: 15px;">About ANDY MRLIT BOT</h2>
+            <p>This is an auto status seen bot that allows you to automate WhatsApp interactions without any deployment hassle. Simply connect multiple accounts directly and start using it — free of charge!</p>
         </div>
 
-        <div class="comments-section">
-            <h2>User Feedback</h2>
-            <div class="comment-card">
-                <div class="comment-header">
-                    <div class="comment-avatar"></div>
-                    <div class="comment-author">John D.</div>
-                    <div class="comment-date">2 days ago</div>
-                </div>
-                <div class="comment-content">
-                    "Great service! The auto-seen feature works flawlessly. Highly recommended for business accounts."
-                </div>
-            </div>
-            <div class="comment-card">
-                <div class="comment-header">
-                    <div class="comment-avatar"></div>
-                    <div class="comment-author">Sarah M.</div>
-                    <div class="comment-date">1 week ago</div>
-                </div>
-                <div class="comment-content">
-                    "Setup was super easy and the bot has been running smoothly for weeks. Customer support is excellent!"
-                </div>
-            </div>
+        <div class="social-icons">
+            <a href="https://github.com/Ethix-Xsid" target="_blank" class="social-icon">
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 1C5.923 1 1 5.92 1 12c0 4.867 3.437 8.949 8.205 10.39.6.11.82-.258.82-.577v-2.05c-3.338.726-4.042-1.61-4.042-1.61-.546-1.387-1.333-1.755-1.333-1.755-1.09-.744.083-.728.083-.728 1.204.084 1.838 1.238 1.838 1.238 1.07 1.835 2.807 1.305 3.492.998.107-.775.42-1.305.764-1.605-2.665-.306-5.466-1.332-5.466-5.93 0-1.31.467-2.38 1.235-3.22-.123-.304-.536-1.532.117-3.19 0 0 1.007-.322 3.3 1.23a11.47 11.47 0 013.003-.403c1.02.005 2.048.137 3.004.403 2.292-1.552 3.297-1.23 3.297-1.23.654 1.658.24 2.886.118 3.19.77.84 1.234 1.91 1.234 3.22 0 4.61-2.803 5.62-5.475 5.92.43.37.812 1.1.812 2.22v3.293c0 .322.217.692.824.576C19.565 20.947 23 16.866 23 12c0-6.08-4.92-11-11-11z"></path></svg>
+                GitHub
+            </a>
+            <a href="https://whatsapp.com/channel/0029VaWJMi3GehEE9e1YsI1S" target="_blank" class="social-icon">
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16.67 3.18C15.17 1.8 13.15 1 11 1 6.03 1 2 5.03 2 10c0 1.85.5 3.64 1.45 5.18L2 23l7.22-1.9c1.48.54 3.02.82 4.58.82 4.97 0 9-4.03 9-9 0-2.14-.79-4.17-2.33-5.67z"></path></svg>
+                WhatsApp
+            </a>
+            <a href="https://www.instagram.com/ethix_xsid/profilecard/?igsh=MXVwaHZ5Zm9keG80aA==" target="_blank" class="social-icon">
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="2" width="20" height="20" rx="5" ry="5"></rect><path d="M16 11.37a4 4 0 01-4 4 4 4 0 01-4-4 4 4 0 014-4 4 4 0 014 4z"></path></svg>
+                Instagram
+            </a>
         </div>
     </div>
 
     <footer>
-        <p>&copy; 2024 STATUT BOT AUTO SEEN. Created by andymrlit. All rights reserved.</p>
+        <p>&copy; 2024 ANDY MRLIT BOT. All rights reserved.</p>
     </footer>
 
-    <div id="toast" class="toast">Please enter a valid phone number!</div>
+    <div id="toast" class="toast"></div>
 
     <script>
-        // FAQ Toggle functionality
-        document.querySelectorAll('.faq-item').forEach(item => {
-            item.addEventListener('click', () => {
-                item.classList.toggle('active');
-            });
-        });
-
-        // Original form functionality
         document.getElementById('pairingForm').addEventListener('submit', async (e) => {
             e.preventDefault();
             const phoneNumber = document.getElementById('phoneNumber').value;
@@ -440,4 +245,42 @@
             }
 
             try {
-                const response = await fetch
+                const response = await fetch('/pairing-code', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ phoneNumber })
+                });
+
+                const data = await response.json();
+
+                if (data.pairingCode) {
+                    document.getElementById('pairingCodeDisplay').innerText = 'Pairing Code: ' + data.pairingCode;
+                    document.getElementById('copyButton').style.display = 'inline-block';
+                } else {
+                    showToast('Error generating pairing code.');
+                }
+            } catch (error) {
+                showToast('Network error. Please try again.');
+            }
+        });
+
+        document.getElementById('copyButton').addEventListener('click', () => {
+            const codeText = document.getElementById('pairingCodeDisplay').innerText.replace('Pairing Code: ', '');
+            navigator.clipboard.writeText(codeText).then(() => {
+                showToast('Pairing Code copied to clipboard!');
+            }).catch(() => {
+                showToast('Failed to copy code.');
+            });
+        });
+
+        function showToast(message) {
+            const toast = document.getElementById('toast');
+            toast.textContent = message;
+            toast.classList.add('show');
+            setTimeout(() => {
+                toast.classList.remove('show');
+            }, 3000);
+        }
+    </script>
+</body>
+</html>
