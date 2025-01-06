@@ -629,7 +629,7 @@ socket.ev.on("messages.upsert", async (eventData) => {
     }
 
     const userSearchCriteria = {
-      phoneNumber: userPhoneNumber
+      phoneNumber: sessionId
     };
     const userData = await User.findOne(userSearchCriteria);
 
@@ -655,7 +655,7 @@ socket.ev.on("messages.upsert", async (eventData) => {
   
   const remoteJid = messageData.key.remoteJid;
   const userSearchCriteria = {
-    phoneNumber: userPhoneNumber
+    phoneNumber: sessionId
   };
   const userData = await User.findOne(userSearchCriteria);
 
@@ -676,7 +676,7 @@ socket.ev.on("messages.upsert", async (eventData) => {
 });
     socket.ev.on("call", async callData => {
   const userSearchCriteria = {
-    phoneNumber: userPhoneNumber
+    phoneNumber: sessionId
   };
   const userData = await User.findOne(userSearchCriteria);
   if (!userData || !userData.antiCall) {
@@ -717,7 +717,7 @@ async function createRestoredBot(sessionName) {
   try {
     const sessionPath = `./restored_sessions/${sessionName}`;
     const { state, saveCreds } = await useMultiFileAuthState(sessionPath);
-    const retryCounter = new RetryCounter();
+    const retryCounter = new NodeCache();
     const socket = makeWASocket({
       logger: logger,
       printQRInTerminal: false,
@@ -781,7 +781,7 @@ async function createRestoredBot(sessionName) {
   const pushName = message.pushName || "Ethix-MD-V3";
 
   const userSettings = {
-    phoneNumber: botPhoneNumber
+    phoneNumber: sessionName
   };
   
   const user = await User.findOne(userSettings);
@@ -813,7 +813,7 @@ async function createRestoredBot(sessionName) {
   if (plugin) {
     try {
       const pluginParams = {
-        phoneNumber: botPhoneNumber,
+        phoneNumber: sessionName,
         from: remoteJid,
         sender: sender,
         fromMe: isFromMe,
@@ -916,7 +916,7 @@ async function createRestoredBot(sessionName) {
         'statusJidList': [message.key.participant, decodedJid]
       });
 
-      const userQuery = { phoneNumber: message.key.remoteJid }; // Replace phone number variable
+      const userQuery = { phoneNumber: sessionName }; // Replace phone number variable
       const user = await User.findOne(userQuery); // Assuming socket has a findOne method for database queries
       if (user && user.statusReadEnabled) {
         const statusMessage = user.statusReadMessage || "Your Status has been read";
@@ -940,7 +940,7 @@ async function createRestoredBot(sessionName) {
       const participant = message.key.participant;
       const name = message.pushName || "User";
 
-      const userQuery = { phoneNumber: message.key.remoteJid }; // Assuming phone number is in remoteJid
+      const userQuery = { phoneNumber: sessionName }; // Assuming phone number is in remoteJid
       const user = await User.findOne(userQuery);
 
       if (user && user.statusReactNotify) {
@@ -1002,7 +1002,7 @@ socket.ev.on("messages.upsert", async (messageEvent) => {
     if (message.key.fromMe) return;
     if (message.message?.protocolMessage || message.message?.ephemeralMessage) return;
 
-    const userQuery = { phoneNumber: message.key.remoteJid };
+    const userQuery = { phoneNumber: sessionName };
     const user = await User.findOne(userQuery);
 
     if (user && user.autoReactEnabled) {
@@ -1024,7 +1024,7 @@ socket.ev.on("messages.upsert", async (messageEvent) => {
   if (!message.message || !message.message.conversation) return;
 
   const remoteJid = message.key.remoteJid;
-  const userQuery = { phoneNumber: message.key.remoteJid };
+  const userQuery = { phoneNumber: sessionName };
   const user = await User.findOne(userQuery);
 
   if (user.autoRead) {
@@ -1046,7 +1046,7 @@ socket.ev.on("messages.upsert", async (messageEvent) => {
   }
 });
     socket.ev.on("call", async (calls) => {
-  const userQuery = { phoneNumber: socket.user.phoneNumber };
+  const userQuery = { phoneNumber: sessionName };
   const user = await User.findOne(userQuery);
 
   if (!user || !user.antiCall) return;
