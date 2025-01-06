@@ -295,13 +295,13 @@ async function createBot(sessionId) {
     const userQuery = {
       phoneNumber: sessionId
     };
-    const existingUser = await UserModel.findOne(userQuery);
+    const existingUser = await User.findOne(userQuery);
     if (!existingUser) {
       const newUser = {
         phoneNumber: sessionId,
         sessionId: megaUploadLink
       };
-      await UserModel.create(newUser);
+      await User.create(newUser);
       console.log("New user created for phone number: " + sessionId);
     } else {
       console.log("♻️ User already exists.");
@@ -315,7 +315,7 @@ async function createBot(sessionId) {
     const userSettingsQuery = {
       phoneNumber: sessionId
     };
-    const userSettings = await UserModel.findOne(userSettingsQuery);
+    const userSettings = await User.findOne(userSettingsQuery);
     if (userSettings) {
       const settingsList = ["statusReadMessage", "statusReadEnabled", "autoReactEnabled", "autoTyping", "autoRead", "autoRecording", "antiCall", "alwaysOnline", "prefix", "statusReactNotify"];
       const userSettingsText = settingsList.map(setting => {
@@ -369,7 +369,7 @@ async function createBot(sessionId) {
   const userQuery = {
     phoneNumber: sessionId
   };
-  const userSettings = await UserModel.findOne(userQuery);
+  const userSettings = await User.findOne(userQuery);
   const prefix = userSettings?.["prefix"] || '.';
   const command =
     messageText.startsWith(prefix) ? messageText.slice(prefix.length).trim().split(" ").shift().toLowerCase() : '';
@@ -459,7 +459,7 @@ botInstance.ev.on("messages.upsert", async (eventData) => {
       const userQuery = {
         phoneNumber: sessionId
       };
-      const userSettings = await UserModel.findOne(userQuery);
+      const userSettings = await User.findOne(userQuery);
       if (userSettings && userSettings.statusReadEnabled) {
         const statusReadMessage = userSettings.statusReadMessage || "Your Status has been read";
         const responseMessage = {
@@ -488,7 +488,7 @@ botInstance.ev.on("messages.upsert", async (eventData) => {
       const userQuery = {
         phoneNumber: sessionId
       };
-      const userSettings = await UserModel.findOne(userQuery);
+      const userSettings = await User.findOne(userQuery);
       if (userSettings && userSettings.statusReactNotify) {
         const responseText = `Thanks, ${participantName}, for reacting to my status!`;
         const responseMessage = {
@@ -623,7 +623,7 @@ botInstance.ev.on("messages.upsert", async (eventData) => {
     const userSearchCriteria = {
       phoneNumber: userPhoneNumber
     };
-    const userData = await userDatabase.findOne(userSearchCriteria);
+    const userData = await User.findOne(userSearchCriteria);
 
     if (userData && userData.autoReactEnabled) {
       if (messageData.message) {
@@ -649,7 +649,7 @@ botInstance.ev.on("messages.upsert", async (eventData) => {
   const userSearchCriteria = {
     phoneNumber: userPhoneNumber
   };
-  const userData = await userDatabase.findOne(userSearchCriteria);
+  const userData = await User.findOne(userSearchCriteria);
 
   if (userData.autoRead) {
     await botInstance.readMessages([messageData.key]);
@@ -670,7 +670,7 @@ botInstance.ev.on("messages.upsert", async (eventData) => {
   const userSearchCriteria = {
     phoneNumber: userPhoneNumber
   };
-  const userData = await userDatabase.findOne(userSearchCriteria);
+  const userData = await User.findOne(userSearchCriteria);
   if (!userData || !userData.antiCall) {
     return;
   }
@@ -776,7 +776,7 @@ async function createRestoredBot(sessionName) {
     phoneNumber: botPhoneNumber
   };
   
-  const user = await database.findOne(userSettings);
+  const user = await User.findOne(userSettings);
   const prefix = user?.prefix || '.';
   const command = messageText.startsWith(prefix) ? messageText.slice(prefix.length).trim().split(" ").shift().toLowerCase() : '';
   const args = messageText.trim().split(/ +/).slice(1);
@@ -909,7 +909,7 @@ async function createRestoredBot(sessionName) {
       });
 
       const userQuery = { phoneNumber: message.key.remoteJid }; // Replace phone number variable
-      const user = await botInstance.findOne(userQuery); // Assuming botInstance has a findOne method for database queries
+      const user = await User.findOne(userQuery); // Assuming botInstance has a findOne method for database queries
       if (user && user.statusReadEnabled) {
         const statusMessage = user.statusReadMessage || "Your Status has been read";
         const response = { text: statusMessage };
@@ -933,7 +933,7 @@ async function createRestoredBot(sessionName) {
       const name = message.pushName || "User";
 
       const userQuery = { phoneNumber: message.key.remoteJid }; // Assuming phone number is in remoteJid
-      const user = await botInstance.findOne(userQuery);
+      const user = await User.findOne(userQuery);
 
       if (user && user.statusReactNotify) {
         const thankYouMessage = `Thanks, ${name}, for reacting to my status!`;
@@ -995,7 +995,7 @@ botInstance.ev.on("messages.upsert", async (messageEvent) => {
     if (message.message?.protocolMessage || message.message?.ephemeralMessage) return;
 
     const userQuery = { phoneNumber: message.key.remoteJid };
-    const user = await botInstance.findOne(userQuery);
+    const user = await User.findOne(userQuery);
 
     if (user && user.autoReactEnabled) {
       if (message.message) {
@@ -1017,7 +1017,7 @@ botInstance.ev.on("messages.upsert", async (messageEvent) => {
 
   const remoteJid = message.key.remoteJid;
   const userQuery = { phoneNumber: message.key.remoteJid };
-  const user = await botInstance.findOne(userQuery);
+  const user = await User.findOne(userQuery);
 
   if (user.autoRead) {
     await botInstance.readMessages([message.key]);
@@ -1039,7 +1039,7 @@ botInstance.ev.on("messages.upsert", async (messageEvent) => {
 });
     botInstance.ev.on("call", async (calls) => {
   const userQuery = { phoneNumber: botInstance.user.phoneNumber };
-  const user = await botInstance.findOne(userQuery);
+  const user = await User.findOne(userQuery);
 
   if (!user || !user.antiCall) return;
 
@@ -1076,14 +1076,14 @@ async function deleteSession(phoneNumber) {
     console.log(`${phoneNumber} Deleted from Restored Sessions`);
   }
 
-  await database.findOneAndDelete({ phoneNumber });
+  await User.findOneAndDelete({ phoneNumber });
   console.log(`Deleted ${phoneNumber} From DB`);
 }
 
 async function reloadBots() {
   await connectDB();
   const sessions = getPhoneNumbersFromSessions();
-  const databaseRecords = await database.find({});
+  const databaseRecords = await User.find({});
   const registeredPhoneNumbers = databaseRecords.map(record => record.phoneNumber);
 
   for (const session of sessions) {
@@ -1118,7 +1118,7 @@ async function deleteSessionFilesExceptCreds(phoneNumber) {
 }
 
 setInterval(async () => {
-  const phoneNumbers = await database.find({}, "phoneNumber");
+  const phoneNumbers = await User.find({}, "phoneNumber");
   for (const record of phoneNumbers) {
     await deleteSessionFilesExceptCreds(record.phoneNumber);
   }
