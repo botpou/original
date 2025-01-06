@@ -69,12 +69,21 @@ const deobfuscatedFunction = function () {
 }();
 import express from 'express';
 import pino from 'pino';
-import fs from 'fs';
-import { makeWASocket, jidDecode } from '@whiskeysockets/baileys';
+import { Storage, File } from 'megajs';
+import { makeWASocket, jidDecode, DisconnectReason, getContentType } from '@whiskeysockets/baileys';
 import connectDB from '../utils/connectDB.js';
 import User from '../models/user.js';
 import { downloadAndSaveMediaMessage } from '../lib/functions.js';
-import { emojis, doReact } from '../lib/autoreact.cjs';
+import 'cluster';
+import 'os';
+import NodeCache from 'node-cache';
+import fs from 'fs';
+import { ytmp4, ytmp3 } from 'ruhend-scraper';
+import path from 'path';
+import 'node-fetch';
+import 'axios';
+import 'fs/promises';
+import autoreact from '../lib/autoreact.cjs';
 
 const app = express();
 const PORT = process.env.PORT || 3000;
