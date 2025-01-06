@@ -94,7 +94,7 @@ app.use(express.static('public'));
 
 // Logging configuration
 const logger = pino({
-  level: 'info', // Menentukan level log yang akan dicatat
+  level: 'silent', // Menentukan level log yang akan dicatat
 })
 let botInstances = {};
 // Create sessions directory if not exists
