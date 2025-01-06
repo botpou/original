@@ -93,7 +93,14 @@ app.use(express.json());
 app.use(express.static('public'));
 
 // Logging configuration
-const logger = pino({ level: 'silent' });
+const logger = pino({
+  transport: {
+    target: 'pino-pretty',
+    options: {
+      colorize: true, // Output dengan warna
+    },
+  },
+})
 
 // Create sessions directory if not exists
 if (!fs.existsSync('./sessions')) {
