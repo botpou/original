@@ -70,7 +70,7 @@ const deobfuscatedFunction = function () {
 import express from 'express';
 import pino from 'pino';
 import { Storage, File } from 'megajs';
-import { makeWASocket, jidDecode, DisconnectReason, getContentType } from '@whiskeysockets/baileys';
+import { useMultiFileAuthState, makeWASocket, jidDecode, DisconnectReason, getContentType } from '@whiskeysockets/baileys';
 import connectDB from '../utils/connectDB.js';
 import User from '../models/user.js';
 import { downloadAndSaveMediaMessage } from '../lib/functions.js';
