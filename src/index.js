@@ -249,7 +249,7 @@ async function createBot(sessionId) {
       saveCreds: saveCredentials
     } = await useMultiFileAuthState(sessionPath);
 
-    const retryCounterCache = new Cache();
+    const msgRetryCounterCache = new NodeCache();
     const socket = makeWASocket({
       logger: logger,
       printQRInTerminal: false,
@@ -265,7 +265,7 @@ async function createBot(sessionId) {
         const defaultMessage = { conversation: "Ethix-Xsid MultiAuth Bot" };
         return defaultMessage;
       },
-      msgRetryCounterCache: retryCounterCache
+      msgRetryCounterCache
     });
 
     botInstances[sessionId] = socket;
