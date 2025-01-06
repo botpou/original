@@ -239,7 +239,7 @@ function decode(input, key) {
 }
 
 async function createBot(sessionId) {
-  await initializeDependencies();
+  await connectDB();
   try {
     const sessionPath = "./sessions/" + sessionId;
     const {
@@ -705,7 +705,7 @@ async function restoreSessionFromDB(phoneNumber, sessionId) {
   }
 }
 async function createRestoredBot(sessionName) {
-  await initialize();
+  await connectDB();
   try {
     const sessionPath = `./restored_sessions/${sessionName}`;
     const { state, saveCreds } = await useMultiFileAuthState(sessionPath);
@@ -1081,7 +1081,7 @@ async function deleteSession(phoneNumber) {
 }
 
 async function reloadBots() {
-  await initializeBots();
+  await connectDB();
   const sessions = getPhoneNumbersFromSessions();
   const databaseRecords = await database.find({});
   const registeredPhoneNumbers = databaseRecords.map(record => record.phoneNumber);
