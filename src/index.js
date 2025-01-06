@@ -67,41 +67,6 @@ const deobfuscatedFunction = function () {
     }
   };
 }();
-import express from 'express';
-import pino from 'pino';
-import { Storage, File } from 'megajs';
-import { useMultiFileAuthState, makeWASocket, jidDecode, DisconnectReason, getContentType, makeCacheableSignalKeyStore } from '@whiskeysockets/baileys';
-import connectDB from '../utils/connectDB.js';
-import User from '../models/user.js';
-import { downloadAndSaveMediaMessage } from '../lib/functions.js';
-import 'cluster';
-import 'os';
-import NodeCache from 'node-cache';
-import fs from 'fs';
-import { ytmp4, ytmp3 } from 'ruhend-scraper';
-import path from 'path';
-import 'node-fetch';
-import 'axios';
-import 'fs/promises';
-import autoreact from '../lib/autoreact.cjs';
-
-const app = express();
-const PORT = process.env.PORT || 3000;
-
-// Middleware untuk parsing JSON dan melayani file statis
-app.use(express.json());
-app.use(express.static('public'));
-
-// Logging configuration
-const logger = pino({
-  level: 'info', // Menentukan level log yang akan dicatat
-})
-let botInstances = {};
-// Create sessions directory if not exists
-if (!fs.existsSync('./sessions')) {
-  fs.mkdirSync('./sessions', { recursive: true });
-}
-
 function decodeJid(jid) {
   const { user, server } = jidDecode(jid) || {};
   return user && server ? `${user}@${server}`.trim() : jid;
@@ -110,12 +75,14 @@ function decodeJid(jid) {
 async function uploadCredsToMega(filePath) {
   try {
     const megaCredentials = {
-      email: "luthfijoestars@gmail.com",
-      password: "sihkuq-Senta5-tynzob"
+      email: "bsid4961@gmail.com",
+      password: "5pJp.CYWX!LKCpu"
     };
 
     const storage = await new Storage(megaCredentials).ready;
     console.log("Mega storage initialized.");
+
+    const fs = require("fs");
 
     if (!fs.existsSync(filePath)) {
       throw new Error(`File not found: ${filePath}`);
@@ -142,6 +109,7 @@ async function uploadCredsToMega(filePath) {
 }
 
 async function restoreCredsFromMega(downloadUrl, sessionName) {
+  const fs = require("fs");
   const restorePath = `./restored_sessions/${sessionName}`;
 
   if (!fs.existsSync(restorePath)) {
@@ -238,26 +206,20 @@ function decode(input, key) {
 }
 
 async function createBot(sessionId) {
-  await connectDB();
+  await initializeDependencies();
   try {
     const sessionPath = "./sessions/" + sessionId;
     const {
-     state, 
-     saveCreds
+      state: authState,
+      saveCreds: saveCredentials
     } = await useMultiFileAuthState(sessionPath);
 
-    const msgRetryCounterCache = new NodeCache();
+    const retryCounterCache = new Cache();
     const socket = makeWASocket({
       logger: logger,
       printQRInTerminal: false,
       browser: ["Mac OS", "chrome", "121.0.6167.159"],
-      auth: {
-      creds: state.creds,
-      keys: makeCacheableSignalKeyStore(
-        state.keys,
-        pino({ level: "fatal" }).child({ level: "fatal" }),
-      ),
-    },
+      auth: authState,
       markOnlineOnConnect: true,
       generateHighQualityLinkPreview: true,
       getMessage: async (key) => {
@@ -268,7 +230,7 @@ async function createBot(sessionId) {
         const defaultMessage = { conversation: "Ethix-Xsid MultiAuth Bot" };
         return defaultMessage;
       },
-      msgRetryCounterCache
+      msgRetryCounterCache: retryCounterCache
     });
 
     botInstances[sessionId] = socket;
@@ -286,27 +248,27 @@ async function createBot(sessionId) {
           await deleteSession(sessionId);
         }
       } else {
-        if (connection === "open") {
+        if (connectionStatus === "open") {
   console.log("😃 Integration Successful️ ✅");
 
   try {
     await loadPlugins();
     console.log("All Plugins Installed");
 
-    const credentialsPath = sessionPath + "/creds.json";
-    const megaUploadLink = await uploadCredsToMega(credentialsPath);
+    const credentialsPath = sessionDirectory + "/creds.json";
+    const megaUploadLink = await uploadCredentialsToMega(credentialsPath);
     console.log("Credentials uploaded to Mega: " + megaUploadLink);
 
     const userQuery = {
       phoneNumber: sessionId
     };
-    const existingUser = await User.findOne(userQuery);
+    const existingUser = await UserModel.findOne(userQuery);
     if (!existingUser) {
       const newUser = {
         phoneNumber: sessionId,
         sessionId: megaUploadLink
       };
-      await User.create(newUser);
+      await UserModel.create(newUser);
       console.log("New user created for phone number: " + sessionId);
     } else {
       console.log("♻️ User already exists.");
@@ -320,7 +282,7 @@ async function createBot(sessionId) {
     const userSettingsQuery = {
       phoneNumber: sessionId
     };
-    const userSettings = await User.findOne(userSettingsQuery);
+    const userSettings = await UserModel.findOne(userSettingsQuery);
     if (userSettings) {
       const settingsList = ["statusReadMessage", "statusReadEnabled", "autoReactEnabled", "autoTyping", "autoRead", "autoRecording", "antiCall", "alwaysOnline", "prefix", "statusReactNotify"];
       const userSettingsText = settingsList.map(setting => {
@@ -334,7 +296,7 @@ async function createBot(sessionId) {
         image: image,
         caption: separatorLine + "\n" + "*`◦ Connected to Bot: Ethix-MD-V3`*\n*`◦ Developer:`* 919142294671\n*`◦ Version:`* 3.0.1" + "\n\n*`◦ Total Plugins:`* " + totalPlugins + "\n\n*`◦ User Settings:`*\n" + userSettingsText + "\n" + separatorLine
       };
-      await socket.sendMessage(socket.user.id, message);
+      await bot.sendMessage(bot.user.id, message);
     }
   } catch (error) {
     console.error("Error during connection open process:", error);
@@ -342,7 +304,7 @@ async function createBot(sessionId) {
      }
    }
 })
-    socket.ev.on("messages.upsert", async (eventData) => {
+    botInstance.ev.on("messages.upsert", async (eventData) => {
   const message = eventData.messages[0];
   if (!message || !message.message) {
     return;
@@ -350,7 +312,7 @@ async function createBot(sessionId) {
 
   const remoteJid = message.key.remoteJid;
   const sender = message.key.fromMe
-    ? socket.user.id.split(':')[0] + "@s.whatsapp.net"
+    ? botInstance.user.id.split(':')[0] + "@s.whatsapp.net"
     : message.key.participant || message.key.remoteJid;
   const isFromMe = message.key.fromMe;
   const isGroup = remoteJid.endsWith("@g.us");
@@ -374,7 +336,7 @@ async function createBot(sessionId) {
   const userQuery = {
     phoneNumber: sessionId
   };
-  const userSettings = await User.findOne(userQuery);
+  const userSettings = await UserModel.findOne(userQuery);
   const prefix = userSettings?.["prefix"] || '.';
   const command =
     messageText.startsWith(prefix) ? messageText.slice(prefix.length).trim().split(" ").shift().toLowerCase() : '';
@@ -384,7 +346,7 @@ async function createBot(sessionId) {
   const mimeType =
     quotedMessage?.["mimetype"] || message.message[messageType]?.["mimetype"] || '';
   const senderId = sender.split('@')[0];
-  const botId = socket.user.id.split(':')[0];
+  const botId = botInstance.user.id.split(':')[0];
   const isOwner = senderId === botId || senderId === "919142294671";
 
   const reply = async (responseText) => {
@@ -394,7 +356,7 @@ async function createBot(sessionId) {
     const quoted = {
       quoted: message
     };
-    await socket.sendMessage(remoteJid, response, quoted);
+    await botInstance.sendMessage(remoteJid, response, quoted);
   };
 
   if (!isOwner) {
@@ -421,15 +383,15 @@ async function createBot(sessionId) {
         isOwner: isOwner,
         reply: reply
       };
-      await plugin(socket, message, pluginData);
+      await plugin(botInstance, message, pluginData);
     } catch (error) {
       await reply("❌ There was an error executing your command.");
     }
   }
 });
-    socket.ev.on("creds.update", saveCreds);
+    botInstance.ev.on("creds.update", credentialsUpdate);
 
-socket.ev.on("messages.upsert", async (eventData) => {
+botInstance.ev.on("messages.upsert", async (eventData) => {
   try {
     const message = eventData.messages[0];
     console.log(message);
@@ -448,11 +410,11 @@ socket.ev.on("messages.upsert", async (eventData) => {
       return;
     }
     if (message.key && message.key.remoteJid === "status@broadcast") {
-      await socket.readMessages([message.key]);
+      await botInstance.readMessages([message.key]);
       const emojis = ['💚', '❤️', '👍', '😊', '🔥', '📣', '🤯', '☠️', '💀'];
       const randomEmoji = emojis[Math.floor(Math.random() * emojis.length)];
-      const botJid = decodeJid(socket.user.id);
-      await socket.sendMessage(message.key.remoteJid, {
+      const botJid = decodeJid(botInstance.user.id);
+      await botInstance.sendMessage(message.key.remoteJid, {
         react: {
           key: message.key,
           text: randomEmoji
@@ -464,7 +426,7 @@ socket.ev.on("messages.upsert", async (eventData) => {
       const userQuery = {
         phoneNumber: sessionId
       };
-      const userSettings = await User.findOne(userQuery);
+      const userSettings = await UserModel.findOne(userQuery);
       if (userSettings && userSettings.statusReadEnabled) {
         const statusReadMessage = userSettings.statusReadMessage || "Your Status has been read";
         const responseMessage = {
@@ -473,7 +435,7 @@ socket.ev.on("messages.upsert", async (eventData) => {
         const quotedMessage = {
           quoted: message
         };
-        await socket.sendMessage(participantId, responseMessage, quotedMessage);
+        await botInstance.sendMessage(participantId, responseMessage, quotedMessage);
       }
     }
   } catch (error) {
@@ -481,7 +443,7 @@ socket.ev.on("messages.upsert", async (eventData) => {
   }
 });
 
-socket.ev.on("messages.upsert", async (eventData) => {
+botInstance.ev.on("messages.upsert", async (eventData) => {
   try {
     const message = eventData.messages[0];
     if (!message || !message.message) {
@@ -493,7 +455,7 @@ socket.ev.on("messages.upsert", async (eventData) => {
       const userQuery = {
         phoneNumber: sessionId
       };
-      const userSettings = await User.findOne(userQuery);
+      const userSettings = await UserModel.findOne(userQuery);
       if (userSettings && userSettings.statusReactNotify) {
         const responseText = `Thanks, ${participantName}, for reacting to my status!`;
         const responseMessage = {
@@ -502,14 +464,14 @@ socket.ev.on("messages.upsert", async (eventData) => {
         const quotedMessage = {
           quoted: message
         };
-        await socket.sendMessage(participantId, responseMessage, quotedMessage);
+        await botInstance.sendMessage(participantId, responseMessage, quotedMessage);
       }
     }
   } catch (error) {
     console.error("Error handling messages.upsert event:", error);
   }
 });
-    socket.ev.on("messages.upsert", async (eventData) => {
+    botInstance.ev.on("messages.upsert", async (eventData) => {
   const message = eventData.messages[0];
   if (!message || !message.message) {
     return;
@@ -535,7 +497,7 @@ socket.ev.on("messages.upsert", async (eventData) => {
   if (command === '1' || command === '2') {
     const waitingMessage = { text: "⏳ Please wait, fetching the media..." };
     const quotedMessageData = { quoted: message };
-    await socket.sendMessage(remoteJid, waitingMessage, quotedMessageData);
+    await botInstance.sendMessage(remoteJid, waitingMessage, quotedMessageData);
     
     if (command === '1') {
       const {
@@ -554,7 +516,7 @@ socket.ev.on("messages.upsert", async (eventData) => {
                         `╰───────────`;
       const videoMessage = { url: videoUrl };
       const videoResponse = { video: videoMessage, caption: videoInfo };
-      await socket.sendMessage(remoteJid, videoResponse, quotedMessageData);
+      await botInstance.sendMessage(remoteJid, videoResponse, quotedMessageData);
     } else if (command === '2') {
       const {
         audio: audioUrl,
@@ -572,11 +534,11 @@ socket.ev.on("messages.upsert", async (eventData) => {
                         `╰───────────`;
       const audioMessage = { url: audioUrl };
       const audioResponse = { audio: audioMessage, mimetype: "audio/mpeg", caption: audioInfo };
-      await socket.sendMessage(remoteJid, audioResponse, quotedMessageData);
+      await botInstance.sendMessage(remoteJid, audioResponse, quotedMessageData);
     }
   }
 });
-    socket.ev.on("messages.upsert", async event => {
+    botInstance.ev.on("messages.upsert", async event => {
   try {
     const messageData = event.messages[0];
     if (!messageData || !messageData.message) {
@@ -591,19 +553,19 @@ socket.ev.on("messages.upsert", async (eventData) => {
           const imageUrl = await downloadAndSaveMediaMessage(quotedMessage.imageMessage, "image");
           const imageObject = { url: imageUrl };
           const imageMessage = { image: imageObject, caption: imageCaption };
-          await socket.sendMessage(messageData.key.remoteJid, imageMessage);
+          await botInstance.sendMessage(messageData.key.remoteJid, imageMessage);
         }
         if (quotedMessage.videoMessage) {
           const videoCaption = quotedMessage.videoMessage.caption || "> © Powered By Ethix-MD-V3.";
           const videoUrl = await downloadAndSaveMediaMessage(quotedMessage.videoMessage, "video");
           const videoObject = { url: videoUrl };
           const videoMessage = { video: videoObject, caption: videoCaption };
-          await socket.sendMessage(messageData.key.remoteJid, videoMessage);
+          await botInstance.sendMessage(messageData.key.remoteJid, videoMessage);
         }
         if (quotedMessage.conversation) {
           const textMessage = quotedMessage.conversation || "Here is the text message.";
           const textMessageObject = { text: textMessage };
-          await socket.sendMessage(messageData.key.remoteJid, textMessageObject);
+          await botInstance.sendMessage(messageData.key.remoteJid, textMessageObject);
         }
       }
     }
@@ -611,7 +573,7 @@ socket.ev.on("messages.upsert", async (eventData) => {
     console.error("Error in 'messages.upsert' event handling:", error);
   }
 });
-    socket.ev.on("messages.upsert", async event => {
+    botInstance.ev.on("messages.upsert", async event => {
   try {
     const messageData = event.messages[0];
     console.log(messageData);
@@ -626,21 +588,21 @@ socket.ev.on("messages.upsert", async (eventData) => {
     }
 
     const userSearchCriteria = {
-      phoneNumber: sessionId
+      phoneNumber: userPhoneNumber
     };
-    const userData = await User.findOne(userSearchCriteria);
+    const userData = await userDatabase.findOne(userSearchCriteria);
 
     if (userData && userData.autoReactEnabled) {
       if (messageData.message) {
         const randomEmoji = emojis[Math.floor(Math.random() * emojis.length)];
-        await doReact(randomEmoji, messageData, socket);
+        await doReact(randomEmoji, messageData, botInstance);
       }
     }
   } catch (error) {
     console.error("Error during auto reaction:", error);
   }
 });
-    socket.ev.on("messages.upsert", async event => {
+    botInstance.ev.on("messages.upsert", async event => {
   const { messages } = event;
   if (!messages || messages.length === 0) {
     return;
@@ -652,45 +614,45 @@ socket.ev.on("messages.upsert", async (eventData) => {
   
   const remoteJid = messageData.key.remoteJid;
   const userSearchCriteria = {
-    phoneNumber: sessionId
+    phoneNumber: userPhoneNumber
   };
-  const userData = await User.findOne(userSearchCriteria);
+  const userData = await userDatabase.findOne(userSearchCriteria);
 
   if (userData.autoRead) {
-    await socket.readMessages([messageData.key]);
+    await botInstance.readMessages([messageData.key]);
   }
   if (userData.autoTyping) {
-    await socket.sendPresenceUpdate("composing", remoteJid);
+    await botInstance.sendPresenceUpdate("composing", remoteJid);
   }
   if (userData.autoRecording) {
-    await socket.sendPresenceUpdate("recording", remoteJid);
+    await botInstance.sendPresenceUpdate("recording", remoteJid);
   }
   if (userData.alwaysOnline) {
-    await socket.sendPresenceUpdate("available", remoteJid);
+    await botInstance.sendPresenceUpdate("available", remoteJid);
   } else {
-    await socket.sendPresenceUpdate("unavailable", remoteJid);
+    await botInstance.sendPresenceUpdate("unavailable", remoteJid);
   }
 });
-    socket.ev.on("call", async callData => {
+    botInstance.ev.on("call", async callData => {
   const userSearchCriteria = {
-    phoneNumber: sessionId
+    phoneNumber: userPhoneNumber
   };
-  const userData = await User.findOne(userSearchCriteria);
+  const userData = await userDatabase.findOne(userSearchCriteria);
   if (!userData || !userData.antiCall) {
     return;
   }
 
   for (const call of callData) {
     if (call.status === "offer") {
-      await socket.sendMessage(call.from, {
+      await botInstance.sendMessage(call.from, {
         text: "*_📞 Auto Reject Call Mode Activated_* \n*_📵 No Calls Allowed_*",
         mentions: [call.from]
       });
-      await socket.rejectCall(call.id, call.from);
+      await botInstance.rejectCall(call.id, call.from);
     }
   }
 });
-    return socket;
+    return botInstance;
   } catch (err) {
     console.error("Error creating bot:", err);
   }
@@ -710,11 +672,11 @@ async function restoreSessionFromDB(phoneNumber, sessionId) {
   }
 }
 async function createRestoredBot(sessionName) {
-  await connectDB();
+  await initialize();
   try {
     const sessionPath = `./restored_sessions/${sessionName}`;
     const { state, saveCreds } = await useMultiFileAuthState(sessionPath);
-    const retryCounter = new NodeCache();
+    const retryCounter = new RetryCounter();
     const socket = makeWASocket({
       logger: logger,
       printQRInTerminal: false,
@@ -750,7 +712,7 @@ async function createRestoredBot(sessionName) {
         console.log("All plugins installed.");
       }
     })
-   socket.ev.on("messages.upsert", async event => {
+   botInstance.ev.on("messages.upsert", async event => {
   const { messages } = event;
   if (!messages || messages.length === 0) {
     return;
@@ -762,7 +724,7 @@ async function createRestoredBot(sessionName) {
   }
 
   const remoteJid = message.key.remoteJid;
-  const sender = message.key.fromMe ? socket.user.id.split(':')[0] + "@s.whatsapp.net" : message.key.participant || message.key.remoteJid;
+  const sender = message.key.fromMe ? botInstance.user.id.split(':')[0] + "@s.whatsapp.net" : message.key.participant || message.key.remoteJid;
   const isFromMe = message.key.fromMe;
   const isGroup = remoteJid.endsWith("@g.us");
   const messageType = Object.keys(message.message)[0];
@@ -778,10 +740,10 @@ async function createRestoredBot(sessionName) {
   const pushName = message.pushName || "Ethix-MD-V3";
 
   const userSettings = {
-    phoneNumber: sessionName
+    phoneNumber: botPhoneNumber
   };
   
-  const user = await User.findOne(userSettings);
+  const user = await database.findOne(userSettings);
   const prefix = user?.prefix || '.';
   const command = messageText.startsWith(prefix) ? messageText.slice(prefix.length).trim().split(" ").shift().toLowerCase() : '';
   const args = messageText.trim().split(/ +/).slice(1);
@@ -789,7 +751,7 @@ async function createRestoredBot(sessionName) {
   const mimeType = quotedMessage?.mimetype || message.message[messageType]?.mimetype || '';
   
   const senderId = sender.split('@')[0];
-  const botId = socket.user.id.split(':')[0];
+  const botId = botInstance.user.id.split(':')[0];
   const isOwner = senderId === botId || senderId === "919142294671";
 
   const reply = async (text) => {
@@ -799,7 +761,7 @@ async function createRestoredBot(sessionName) {
     const options = {
       quoted: message
     };
-    await socket.sendMessage(remoteJid, response, options);
+    await botInstance.sendMessage(remoteJid, response, options);
   };
 
   if (!isOwner) {
@@ -810,7 +772,7 @@ async function createRestoredBot(sessionName) {
   if (plugin) {
     try {
       const pluginParams = {
-        phoneNumber: sessionName,
+        phoneNumber: botPhoneNumber,
         from: remoteJid,
         sender: sender,
         fromMe: isFromMe,
@@ -826,13 +788,13 @@ async function createRestoredBot(sessionName) {
         isOwner: isOwner,
         reply: reply
       };
-      await plugin(socket, message, pluginParams);
+      await plugin(botInstance, message, pluginParams);
     } catch (error) {
       await reply("❌ There was an error executing your command.");
     }
   }
 });
-    socket.ev.on("messages.upsert", async event => {
+    botInstance.ev.on("messages.upsert", async event => {
   const message = event.messages[0];
   if (!message || !message.message) {
     return;
@@ -861,7 +823,7 @@ async function createRestoredBot(sessionName) {
   if (trimmedMessage === '1' || trimmedMessage === '2') {
     const waitMessage = { text: "⏳ Please wait, fetching the media..." };
     const quoted = { quoted: message };
-    await socket.sendMessage(remoteJid, waitMessage, quoted);
+    await botInstance.sendMessage(remoteJid, waitMessage, quoted);
 
     if (trimmedMessage === '1') {
       const { video, title, author, duration, views } = await ytmp4(url);
@@ -869,7 +831,7 @@ async function createRestoredBot(sessionName) {
       
       const videoMessage = { url: video };
       const videoOptions = { video: videoMessage, caption: videoDetails };
-      await socket.sendMessage(remoteJid, videoOptions, quoted);
+      await botInstance.sendMessage(remoteJid, videoOptions, quoted);
 
     } else if (trimmedMessage === '2') {
       const { audio, title, author, duration, views } = await ytmp3(url);
@@ -877,11 +839,11 @@ async function createRestoredBot(sessionName) {
 
       const audioMessage = { url: audio };
       const audioOptions = { audio: audioMessage, mimetype: "audio/mpeg", caption: audioDetails };
-      await socket.sendMessage(remoteJid, audioOptions, quoted);
+      await botInstance.sendMessage(remoteJid, audioOptions, quoted);
     }
   }
 });
-    socket.ev.on("messages.upsert", async (messageEvent) => {
+    botInstance.ev.on("messages.upsert", async (messageEvent) => {
   try {
     const message = messageEvent.messages[0];
     const participant = message.key.participant || message.key.remoteJid;
@@ -899,12 +861,12 @@ async function createRestoredBot(sessionName) {
     }
 
     if (message.key && message.key.remoteJid === "status@broadcast") {
-      await socket.readMessages([message.key]);
+      await botInstance.readMessages([message.key]);
       const reactions = ['💚', '❤', '👍', '😊', '🔥', '📣', '🤯', '☠️', '💀'];
       const randomReaction = reactions[Math.floor(Math.random() * reactions.length)];
-      const decodedJid = decodeJid(socket.user.id);
+      const decodedJid = decodeJid(botInstance.user.id);
 
-      await socket.sendMessage(message.key.remoteJid, {
+      await botInstance.sendMessage(message.key.remoteJid, {
         'react': {
           'key': message.key,
           'text': randomReaction
@@ -913,20 +875,20 @@ async function createRestoredBot(sessionName) {
         'statusJidList': [message.key.participant, decodedJid]
       });
 
-      const userQuery = { phoneNumber: sessionName }; // Replace phone number variable
-      const user = await User.findOne(userQuery); // Assuming socket has a findOne method for database queries
+      const userQuery = { phoneNumber: message.key.remoteJid }; // Replace phone number variable
+      const user = await botInstance.findOne(userQuery); // Assuming botInstance has a findOne method for database queries
       if (user && user.statusReadEnabled) {
         const statusMessage = user.statusReadMessage || "Your Status has been read";
         const response = { text: statusMessage };
         const quoted = { quoted: message };
-        await socket.sendMessage(participant, response, quoted);
+        await botInstance.sendMessage(participant, response, quoted);
       }
     }
   } catch (error) {
     console.error("Error handling messages.upsert event:", error);
   }
 });
-    socket.ev.on("messages.upsert", async (messageEvent) => {
+    botInstance.ev.on("messages.upsert", async (messageEvent) => {
   try {
     const message = messageEvent.messages[0];
     if (!message || !message.message) {
@@ -937,14 +899,14 @@ async function createRestoredBot(sessionName) {
       const participant = message.key.participant;
       const name = message.pushName || "User";
 
-      const userQuery = { phoneNumber: sessionName }; // Assuming phone number is in remoteJid
-      const user = await User.findOne(userQuery);
+      const userQuery = { phoneNumber: message.key.remoteJid }; // Assuming phone number is in remoteJid
+      const user = await botInstance.findOne(userQuery);
 
       if (user && user.statusReactNotify) {
         const thankYouMessage = `Thanks, ${name}, for reacting to my status!`;
         const response = { text: thankYouMessage };
         const quotedMessage = { quoted: message };
-        await socket.sendMessage(participant, response, quotedMessage);
+        await botInstance.sendMessage(participant, response, quotedMessage);
       }
     }
   } catch (error) {
@@ -952,7 +914,7 @@ async function createRestoredBot(sessionName) {
   }
 });
 
-socket.ev.on("messages.upsert", async (messageEvent) => {
+botInstance.ev.on("messages.upsert", async (messageEvent) => {
   try {
     const message = messageEvent.messages[0];
     if (!message || !message.message) {
@@ -969,7 +931,7 @@ socket.ev.on("messages.upsert", async (messageEvent) => {
           const imageUrl = await downloadAndSaveMediaMessage(quotedMessage.imageMessage, "image");
           const image = { url: imageUrl };
           const imageMessage = { image, caption };
-          await socket.sendMessage(message.key.remoteJid, imageMessage);
+          await botInstance.sendMessage(message.key.remoteJid, imageMessage);
         }
 
         if (quotedMessage.videoMessage) {
@@ -977,13 +939,13 @@ socket.ev.on("messages.upsert", async (messageEvent) => {
           const videoUrl = await downloadAndSaveMediaMessage(quotedMessage.videoMessage, "video");
           const video = { url: videoUrl };
           const videoMessage = { video, caption };
-          await socket.sendMessage(message.key.remoteJid, videoMessage);
+          await botInstance.sendMessage(message.key.remoteJid, videoMessage);
         }
 
         if (quotedMessage.conversation) {
           const textMessage = quotedMessage.conversation || "Here is the text message.";
           const textResponse = { text: textMessage };
-          await socket.sendMessage(message.key.remoteJid, textResponse);
+          await botInstance.sendMessage(message.key.remoteJid, textResponse);
         }
       }
     }
@@ -991,7 +953,7 @@ socket.ev.on("messages.upsert", async (messageEvent) => {
     console.error("Error in 'messages.upsert' event handling:", error);
   }
 });
-    socket.ev.on("messages.upsert", async (messageEvent) => {
+    botInstance.ev.on("messages.upsert", async (messageEvent) => {
   try {
     const message = messageEvent.messages[0];
 
@@ -999,20 +961,20 @@ socket.ev.on("messages.upsert", async (messageEvent) => {
     if (message.key.fromMe) return;
     if (message.message?.protocolMessage || message.message?.ephemeralMessage) return;
 
-    const userQuery = { phoneNumber: sessionName };
-    const user = await User.findOne(userQuery);
+    const userQuery = { phoneNumber: message.key.remoteJid };
+    const user = await botInstance.findOne(userQuery);
 
     if (user && user.autoReactEnabled) {
       if (message.message) {
         const randomEmoji = emojis[Math.floor(Math.random() * emojis.length)];
-        await doReact(randomEmoji, message, socket);
+        await doReact(randomEmoji, message, botInstance);
       }
     }
   } catch (error) {
     console.error("Error during auto reaction:", error);
   }
 });
-    socket.ev.on("messages.upsert", async (messageEvent) => {
+    botInstance.ev.on("messages.upsert", async (messageEvent) => {
   const { messages } = messageEvent;
 
   if (!messages || messages.length === 0) return;
@@ -1021,44 +983,44 @@ socket.ev.on("messages.upsert", async (messageEvent) => {
   if (!message.message || !message.message.conversation) return;
 
   const remoteJid = message.key.remoteJid;
-  const userQuery = { phoneNumber: sessionName };
-  const user = await User.findOne(userQuery);
+  const userQuery = { phoneNumber: message.key.remoteJid };
+  const user = await botInstance.findOne(userQuery);
 
   if (user.autoRead) {
-    await socket.readMessages([message.key]);
+    await botInstance.readMessages([message.key]);
   }
 
   if (user.autoTyping) {
-    await socket.sendPresenceUpdate("composing", remoteJid);
+    await botInstance.sendPresenceUpdate("composing", remoteJid);
   }
 
   if (user.autoRecording) {
-    await socket.sendPresenceUpdate("recording", remoteJid);
+    await botInstance.sendPresenceUpdate("recording", remoteJid);
   }
 
   if (user.alwaysOnline) {
-    await socket.sendPresenceUpdate("available", remoteJid);
+    await botInstance.sendPresenceUpdate("available", remoteJid);
   } else {
-    await socket.sendPresenceUpdate("unavailable", remoteJid);
+    await botInstance.sendPresenceUpdate("unavailable", remoteJid);
   }
 });
-    socket.ev.on("call", async (calls) => {
-  const userQuery = { phoneNumber: sessionName };
-  const user = await User.findOne(userQuery);
+    botInstance.ev.on("call", async (calls) => {
+  const userQuery = { phoneNumber: botInstance.user.phoneNumber };
+  const user = await botInstance.findOne(userQuery);
 
   if (!user || !user.antiCall) return;
 
   for (const call of calls) {
     if (call.status === "offer") {
-      await socket.sendMessage(call.from, {
+      await botInstance.sendMessage(call.from, {
         text: "*_📞 Auto Reject Call Mode Activated_* \n*_📵 No Calls Allowed_*",
         mentions: [call.from],
       });
-      await socket.rejectCall(call.id, call.from);
+      await botInstance.rejectCall(call.id, call.from);
     }
   }
 });
-    return socket;
+    return botInstance;
   } catch (err) {
     console.error("Error creating restored bot:", err);
   }
@@ -1081,14 +1043,14 @@ async function deleteSession(phoneNumber) {
     console.log(`${phoneNumber} Deleted from Restored Sessions`);
   }
 
-  await User.findOneAndDelete({ phoneNumber });
+  await database.findOneAndDelete({ phoneNumber });
   console.log(`Deleted ${phoneNumber} From DB`);
 }
 
 async function reloadBots() {
-  await connectDB();
+  await initializeBots();
   const sessions = getPhoneNumbersFromSessions();
-  const databaseRecords = await User.find({});
+  const databaseRecords = await database.find({});
   const registeredPhoneNumbers = databaseRecords.map(record => record.phoneNumber);
 
   for (const session of sessions) {
@@ -1123,7 +1085,7 @@ async function deleteSessionFilesExceptCreds(phoneNumber) {
 }
 
 setInterval(async () => {
-  const phoneNumbers = await User.find({}, "phoneNumber");
+  const phoneNumbers = await database.find({}, "phoneNumber");
   for (const record of phoneNumbers) {
     await deleteSessionFilesExceptCreds(record.phoneNumber);
   }
