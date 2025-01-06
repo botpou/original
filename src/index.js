@@ -69,6 +69,7 @@ const deobfuscatedFunction = function () {
 }();
 import express from 'express';
 import pino from 'pino';
+import fs from 'fs';
 import { makeWASocket, jidDecode } from '@whiskeysockets/baileys';
 import connectDB from '../utils/connectDB.js';
 import User from '../models/user.js';
