@@ -289,7 +289,7 @@ async function createBot(sessionId) {
           await deleteSession(sessionId);
         }
       } else {
-        if (connectionStatus === "open") {
+        if (connection === "open") {
   console.log("😃 Integration Successful️ ✅");
 
   try {
