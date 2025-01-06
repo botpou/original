@@ -70,7 +70,7 @@ const deobfuscatedFunction = function () {
 import express from 'express';
 import pino from 'pino';
 import { Storage, File } from 'megajs';
-import { useMultiFileAuthState, makeWASocket, jidDecode, DisconnectReason, getContentType } from '@whiskeysockets/baileys';
+import { useMultiFileAuthState, makeWASocket, jidDecode, DisconnectReason, getContentType, makeCacheableSignalKeyStore } from '@whiskeysockets/baileys';
 import connectDB from '../utils/connectDB.js';
 import User from '../models/user.js';
 import { downloadAndSaveMediaMessage } from '../lib/functions.js';
@@ -245,8 +245,8 @@ async function createBot(sessionId) {
   try {
     const sessionPath = "./sessions/" + sessionId;
     const {
-      state: authState,
-      saveCreds: saveCredentials
+     state, 
+     saveCreds
     } = await useMultiFileAuthState(sessionPath);
 
     const msgRetryCounterCache = new NodeCache();
@@ -254,7 +254,13 @@ async function createBot(sessionId) {
       logger: logger,
       printQRInTerminal: false,
       browser: ["Mac OS", "chrome", "121.0.6167.159"],
-      auth: authState,
+      auth: {
+      creds: state.creds,
+      keys: makeCacheableSignalKeyStore(
+        state.keys,
+        pino({ level: "fatal" }).child({ level: "fatal" }),
+      ),
+    },
       markOnlineOnConnect: true,
       generateHighQualityLinkPreview: true,
       getMessage: async (key) => {
