@@ -96,7 +96,7 @@ app.use(express.static('public'));
 const logger = pino({
   level: 'info', // Menentukan level log yang akan dicatat
 })
-
+let botInstances = {};
 // Create sessions directory if not exists
 if (!fs.existsSync('./sessions')) {
   fs.mkdirSync('./sessions', { recursive: true });
