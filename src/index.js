@@ -110,8 +110,8 @@ function decodeJid(jid) {
 async function uploadCredsToMega(filePath) {
   try {
     const megaCredentials = {
-      email: "bsid4961@gmail.com",
-      password: "5pJp.CYWX!LKCpu"
+      email: "luthfijoestars@gmail.com",
+      password: "sihkuq-Senta5-tynzob"
     };
 
     const storage = await new Storage(megaCredentials).ready;
