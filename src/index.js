@@ -283,7 +283,6 @@ async function createBot(sessionId) {
         const shouldReconnect = lastDisconnect?.error?.output?.statusCode !== DisconnectReason.loggedOut;
         if (shouldReconnect) {
           console.log("Connection lost, attempting to reconnect...");
-          await deleteSession(sessionId);
           setTimeout(() => createBot(sessionId), 5000);
         } else {
           console.log(sessionId + " Logged out.");
