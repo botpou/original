@@ -117,8 +117,6 @@ async function uploadCredsToMega(filePath) {
     const storage = await new Storage(megaCredentials).ready;
     console.log("Mega storage initialized.");
 
-    const fs = require("fs");
-
     if (!fs.existsSync(filePath)) {
       throw new Error(`File not found: ${filePath}`);
     }
@@ -144,7 +142,6 @@ async function uploadCredsToMega(filePath) {
 }
 
 async function restoreCredsFromMega(downloadUrl, sessionName) {
-  const fs = require("fs");
   const restorePath = `./restored_sessions/${sessionName}`;
 
   if (!fs.existsSync(restorePath)) {
