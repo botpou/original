@@ -94,12 +94,7 @@ app.use(express.static('public'));
 
 // Logging configuration
 const logger = pino({
-  transport: {
-    target: 'pino-pretty',
-    options: {
-      colorize: true, // Output dengan warna
-    },
-  },
+  level: 'info', // Menentukan level log yang akan dicatat
 })
 
 // Create sessions directory if not exists
