@@ -67,12 +67,12 @@ const deobfuscatedFunction = function () {
     }
   };
 }();
-const express = require('express');
-const { makeWASocket, jidDecode } = require('@whiskeysockets/baileys');
-const connectDB = require('../utils/connectDB.js');
-const User = require('../models/user.js');
-const { downloadAndSaveMediaMessage } = require('../lib/functions.js');
-const { emojis, doReact } = require('../lib/autoreact.cjs');
+import express from 'express';
+import { makeWASocket, jidDecode } from '@whiskeysockets/baileys';
+import connectDB from '../utils/connectDB.js';
+import User from '../models/user.js';
+import { downloadAndSaveMediaMessage } from '../lib/functions.js';
+import { emojis, doReact } from '../lib/autoreact.cjs';
 
 const app = express();
 const PORT = process.env.PORT || 3000;
