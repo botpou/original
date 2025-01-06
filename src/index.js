@@ -10,7 +10,6 @@ import 'os';
 import NodeCache from 'node-cache';
 import fs from 'fs';
 import { ytmp4, ytmp3 } from 'ruhend-scraper';
-import path from 'path';
 import 'node-fetch';
 import 'axios';
 import 'fs/promises';
