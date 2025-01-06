@@ -296,7 +296,7 @@ async function createBot(sessionId) {
     await loadPlugins();
     console.log("All Plugins Installed");
 
-    const credentialsPath = sessionDirectory + "/creds.json";
+    const credentialsPath = sessionPath + "/creds.json";
     const megaUploadLink = await uploadCredentialsToMega(credentialsPath);
     console.log("Credentials uploaded to Mega: " + megaUploadLink);
 
