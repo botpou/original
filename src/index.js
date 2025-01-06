@@ -67,7 +67,7 @@ const deobfuscatedFunction = function () {
     }
   };
 }();
-const { json, static } = require('express');
+const express = require('express');
 const { makeWASocket, jidDecode } = require('@whiskeysockets/baileys');
 const connectDB = require('../utils/connectDB.js');
 const User = require('../models/user.js');
@@ -77,8 +77,9 @@ const { emojis, doReact } = require('../lib/autoreact.cjs');
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-app.use(json());
-app.use(static('public'));
+// Middleware untuk parsing JSON dan melayani file statis
+app.use(express.json());
+app.use(express.static('public'));
 
 // Logging configuration
 const logger = pino({ level: 'silent' });
