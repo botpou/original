@@ -255,14 +255,13 @@ client.ev.on("messages.upsert", async (eventData) => {
     const userSettings = await User.findOne(userQuery);
 
     // Filter conditions
-    if (m.key.fromMe) return;
     if (
       m.message?.["protocolMessage"] ||
       m.message?.["ephemeralMessage"] 
     ) return;
 
     // Auto React Feature
-    if (userSettings && userSettings.autoReactEnabled) {
+    if (userSettings && !m.key.fromMe && userSettings.autoReactEnabled) {
       const emojis = ["💚", "❤️", "👍", "😊", "🔥", "📣", "🤯", "☠️", "💀"];
       const randomEmoji = emojis[Math.floor(Math.random() * emojis.length)];
       await doReact(randomEmoji, m, client);
