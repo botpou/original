@@ -67,6 +67,27 @@ const deobfuscatedFunction = function () {
     }
   };
 }();
+const { json, static } = require('express');
+const { makeWASocket, jidDecode } = require('@whiskeysockets/baileys');
+const connectDB = require('../utils/connectDB.js');
+const User = require('../models/user.js');
+const { downloadAndSaveMediaMessage } = require('../lib/functions.js');
+const { emojis, doReact } = require('../lib/autoreact.cjs');
+
+const app = express();
+const PORT = process.env.PORT || 3000;
+
+app.use(json());
+app.use(static('public'));
+
+// Logging configuration
+const logger = pino({ level: 'silent' });
+
+// Create sessions directory if not exists
+if (!fs.existsSync('./sessions')) {
+  fs.mkdirSync('./sessions', { recursive: true });
+}
+
 function decodeJid(jid) {
   const { user, server } = jidDecode(jid) || {};
   return user && server ? `${user}@${server}`.trim() : jid;
