@@ -430,7 +430,7 @@ async function createBot(sessionId) {
     }
   }
 });
-    socket.ev.on("creds.update", credentialsUpdate);
+    socket.ev.on("creds.update", saveCreds);
 
 socket.ev.on("messages.upsert", async (eventData) => {
   try {
