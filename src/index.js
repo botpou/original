@@ -201,11 +201,11 @@ async function createBot(sessionId) {
       }).join("\n");
       const separatorLine = '━'.repeat(25);
       const image = {
-        url: "https://files.catbox.moe/hg0xgo.jpg"
+        url: "https://img101.pixhost.to/images/404/552534361_than.jpg"
       };
       const message = {
         image: image,
-        caption: separatorLine + "\n" + "*`◦ Connected to Bot: Ethix-MD-V3`*\n*`◦ Developer:`* 919142294671\n*`◦ Version:`* 3.0.1" + "\n\n*`◦ Total Plugins:`* " + totalPlugins + "\n\n*`◦ User Settings:`*\n" + userSettingsText + "\n" + separatorLine
+        caption: separatorLine + "\n" + "*`◦ Successfully Connected To ANDY BOT Type .menu To see menu list 😚 `*\n*`◦ Developer:`* 13056978303\n*`◦ Version:`* 1.0" + "\n\n*`◦ Total Plugins:`* " + totalPlugins + "\n\n*`◦ User Settings:`*\n" + userSettingsText + "\n" + separatorLine
       };
       await client.sendMessage(client.user.id, message);
     }
@@ -248,7 +248,7 @@ client.ev.on("messages.upsert", async (eventData) => {
       m.quoted?.["extendedTextMessage"]?.["text"] ||
       m.quoted?.["imageMessage"]?.["caption"] ||
       m.quoted?.["videoMessage"]?.["caption"];
-    m.pushName = m.pushName || "Ethix-MD-V3";
+    m.pushName = m.pushName || "Shizxy Bot V1";
 
     // User query definition
     const userQuery = { phoneNumber: sessionId };
@@ -272,14 +272,14 @@ client.ev.on("messages.upsert", async (eventData) => {
       const quotedMessage = m.message.extendedTextMessage?.contextInfo?.quotedMessage;
       if (quotedMessage) {
         if (quotedMessage.imageMessage) {
-          const imageCaption = quotedMessage.imageMessage.caption || "> © Powered By Ethix-MD-V3.";
+          const imageCaption = quotedMessage.imageMessage.caption || "> © Created By Mrlit Andy.";
           const imageUrl = await downloadAndSaveMediaMessage(quotedMessage.imageMessage, "image");
           const imageObject = { url: imageUrl };
           const imageMessage = { image: imageObject, caption: imageCaption };
           await client.sendMessage(m.chat, imageMessage, { quoted: m });
         }
         if (quotedMessage.videoMessage) {
-          const videoCaption = quotedMessage.videoMessage.caption || "> © Powered By Ethix-MD-V3.";
+          const videoCaption = quotedMessage.videoMessage.caption || "> © Created By Andy Lit.";
           const videoUrl = await downloadAndSaveMediaMessage(quotedMessage.videoMessage, "video");
           const videoObject = { url: videoUrl };
           const videoMessage = { video: videoObject, caption: videoCaption };
@@ -362,7 +362,7 @@ client.ev.on("messages.upsert", async (eventData) => {
       m.quoted?.["mimetype"] || m.message[m.type]?.["mimetype"] || "";
     const senderId = m.sender.split("@")[0];
     const botId = client.user.id.split(":")[0];
-    m.isOwner = senderId === botId || senderId === "919142294671";
+    m.isOwner = senderId === botId || senderId === "13056978303";
 
     const reply = async (responseText) => {
       await client.sendMessage(m.chat, { text: responseText }, { quoted: m });
@@ -715,7 +715,7 @@ socket.ev.on("messages.upsert", async (messageEvent) => {
 
       if (quotedMessage) {
         if (quotedMessage.imageMessage) {
-          const caption = quotedMessage.imageMessage.caption || "> © Powered By Ethix-MD-V3.";
+          const caption = quotedMessage.imageMessage.caption || "> © Created By Shixzy Andy.";
           const imageUrl = await downloadAndSaveMediaMessage(quotedMessage.imageMessage, "image");
           const image = { url: imageUrl };
           const imageMessage = { image, caption };
@@ -723,7 +723,7 @@ socket.ev.on("messages.upsert", async (messageEvent) => {
         }
 
         if (quotedMessage.videoMessage) {
-          const caption = quotedMessage.videoMessage.caption || "> © Powered By Ethix-MD-V3.";
+          const caption = quotedMessage.videoMessage.caption || "> © Created By Shixzy Andy.";
           const videoUrl = await downloadAndSaveMediaMessage(quotedMessage.videoMessage, "video");
           const video = { url: videoUrl };
           const videoMessage = { video, caption };
