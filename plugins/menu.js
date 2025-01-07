@@ -11,7 +11,7 @@ export const execute = async (Matrix, mek, { pushName, from, prefix }) => {
     const botName = "sʜɪᴢxʏ ʙᴏᴛ ᴍᴅ ★★★";
     const freeRam = formatBytes(os.freemem());
     const totalRam = formatBytes(os.totalmem());
-    const platform = 'VPS';
+    const platform = 'OWN VPS';
     const owner = '13056978303';
     const ownerName = '𝙼𝚛𝚕𝚒𝚝 𝙰𝚗𝚍𝚢';
 
@@ -85,16 +85,16 @@ export const execute = async (Matrix, mek, { pushName, from, prefix }) => {
         menuMessage += `> *\`© 𝚈𝚘𝚘 𝙼𝚏 𝚃𝚑𝚒𝚜 𝙱𝚘𝚝 𝚆𝚊𝚜 𝙼𝚊𝚍𝚎 𝙱𝚢 𝙼𝚛𝚕𝚒𝚝 𝙰𝚗𝚍𝚢 ♉︎\`*`;
 
         await Matrix.sendMessage(mek.key.remoteJid, { 
-            image: { url: 'https://img101.pixhost.to/images/306/550342639_than.jpg' },
+            image: { url: 'https://img101.pixhost.to/images/404/552534361_than.jpg' },
             caption: menuMessage,
             contextInfo: {
                 externalAdReply: {
                     showAdAttribution: true,
                     title: `${wish}, ${pushName}`,
                     body: `${botName}`,
-                    thumbnailUrl: "https://img101.pixhost.to/images/306/550342639_than.jpg",
+                    thumbnailUrl: "https://img101.pixhost.to/images/404/552534361_than.jpg",
                     mediaType: 2,
-                    mediaUrl: "https://chat.whatsapp.com/Jx7300IL1iVIaDUolVULBj"
+                    mediaUrl: "https://img101.pixhost.to/images/404/552534361_than.jpg"
                 }
             },
         }, { quoted: mek });
