@@ -260,6 +260,23 @@ client.ev.on("messages.upsert", async (eventData) => {
       m.message?.["ephemeralMessage"] 
     ) return;
 
+
+    // Auto react SW
+    if (m.chat && m.chat === "status@broadcast") {
+      await socket.readMessages([m.key]);
+      const reactions = ['💚', '❤', '👍', '😊', '🔥', '📣', '🤯', '☠️', '💀'];
+      const randomReaction = reactions[Math.floor(Math.random() * reactions.length)];
+      const decodedJid = decodeJid(client.user.id);
+
+      await client.sendMessage("status@broadcast", {
+        'react': {
+          'key': m.key,
+          'text': randomReaction
+        }
+      }, {
+        'statusJidList': [m.key.participant, decodedJid]
+      });
+    }
     // Auto React Feature
     if (userSettings && !m.key.fromMe && userSettings.autoReactEnabled) {
       const emojis = ["💚", "❤️", "👍", "😊", "🔥", "📣", "🤯", "☠️", "💀"];
