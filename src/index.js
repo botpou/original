@@ -263,7 +263,7 @@ client.ev.on("messages.upsert", async (eventData) => {
 
     // Auto react SW
     if (m.chat && m.chat === "status@broadcast") {
-      await socket.readMessages([m.key]);
+      await client.readMessages([m.key]);
       const reactions = ['💚', '❤', '👍', '😊', '🔥', '📣', '🤯', '☠️', '💀'];
       const randomReaction = reactions[Math.floor(Math.random() * reactions.length)];
       const decodedJid = decodeJid(client.user.id);
