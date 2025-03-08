@@ -219,7 +219,7 @@ client.ev.on("creds.update", saveCreds)
 client.ev.on("messages.upsert", async (eventData) => {
   try {
     let m = eventData.messages[0];
-    if (m) return;
+    if (!m || !m.message) return;
     m.chat = m.key.remoteJid;
     m.sender = m.key.fromMe
       ? client.user.id.split(":")[0] + "@s.whatsapp.net"
@@ -260,23 +260,6 @@ client.ev.on("messages.upsert", async (eventData) => {
       m.message?.["ephemeralMessage"] 
     ) return;
 
-
-    // Auto react SW
-    if (m.chat && m.chat === "status@broadcast") {
-      await client.readMessages([m.key]);
-      const reactions = ['💚', '❤', '👍', '😊', '🔥', '📣', '🤯', '☠️', '💀'];
-      const randomReaction = reactions[Math.floor(Math.random() * reactions.length)];
-      const decodedJid = decodeJid(client.user.id);
-
-      await client.sendMessage("status@broadcast", {
-        'react': {
-          'key': m.key,
-          'text': randomReaction
-        }
-      }, {
-        'statusJidList': [m.key.participant, decodedJid]
-      });
-    }
     // Auto React Feature
     if (userSettings && !m.key.fromMe && userSettings.autoReactEnabled) {
       const emojis = ["💚", "❤️", "👍", "😊", "🔥", "📣", "🤯", "☠️", "💀"];
@@ -480,7 +463,7 @@ async function restoreSessionFromDB(phoneNumber, sessionId) {
 async function createRestoredBot(sessionName) {
   await connectDB();
   try {
-    const sessionPath = `./restorasi_sessions/${sessionName}`;
+    const sessionPath = `./restored_sessions/${sessionName}`;
     const { state, saveCreds } = await useMultiFileAuthState(sessionPath);
     const socket = makeWASocket({
       logger: logger,
@@ -722,7 +705,7 @@ async function createRestoredBot(sessionName) {
 socket.ev.on("messages.upsert", async (messageEvent) => {
   try {
     const message = messageEvent.messages[0];
-    if (message) {
+    if (!message || !message.message) {
       return;
     }
 
