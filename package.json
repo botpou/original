@@ -4,7 +4,7 @@
   "main": "src/index.js",
   "type": "module",
   "scripts": {
-    "start": "pm2 start modle/ops.js --deep-monitoring --attach --name MultiauthBot",
+    "start": "pm2 start module/ops.js --deep-monitoring --attach --name MultiauthBot",
     "stop": "pm2 stop MultiauthBot",
     "restart": "pm2 restart MultiauthBot"
   },
