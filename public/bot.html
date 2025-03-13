@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SHIZXY BOT MD | WhatsApp Bot</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="script.js" defer></script>
+</head>
+<body class="bg-gray-900 text-white transition-colors duration-300">
+    <div class="container mx-auto px-4 py-8">
+        <header class="flex justify-between items-center mb-8">
+            <h1 class="text-4xl font-bold">SHIZXY BOT MD</h1>
+            <button id="dark-mode-toggle" class="p-2 bg-gray-700 rounded-full">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" />
+                </svg>
+            </button>
+        </header>
+
+        <main>
+            <!-- Pairing Section -->
+            <div class="mb-12">
+                <h2 class="text-2xl font-bold mb-4 text-blue-400">🤖 BOT CONTROL PANEL</h2>
+                <div class="link-card bg-gray-800 p-6 rounded-lg shadow-md">
+                    <div class="mb-4 flex items-center gap-2 text-green-400">
+                        <i class="fas fa-circle-check"></i>
+                        <span>Status: Active</span>
+                    </div>
+                    
+                    <form id="pairingForm" class="space-y-4">
+                        <input type="text" id="phoneNumber" 
+                               class="w-full bg-gray-700 rounded-lg p-3 text-white focus:ring-2 focus:ring-blue-500"
+                               placeholder="Enter Phone Number (with country code)" 
+                               required>
+                        <button type="submit" 
+                                class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-4 rounded-lg transition-all">
+                            <i class="fas fa-qrcode mr-2"></i>Generate Pairing Code
+                        </button>
+                    </form>
+
+                    <div id="pairingCodeDisplay" class="text-center my-4 text-blue-300 font-mono text-xl"></div>
+                    <button id="copyButton" 
+                            class="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-3 px-4 rounded-lg transition-all hidden">
+                        <i class="fas fa-copy mr-2"></i>Copy Code
+                    </button>
+                </div>
+            </div>
+
+            <!-- Features Section -->
+            <div class="mb-12">
+                <h2 class="text-2xl font-bold mb-4 text-blue-400">✨ FEATURES</h2>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div class="link-card bg-gray-800 p-4 rounded-lg shadow-md">
+                        <i class="fas fa-comment-dots text-blue-400 text-3xl mb-2"></i>
+                        <h3 class="text-xl font-bold text-blue-300 mb-2">Auto-Response</h3>
+                        <p class="text-gray-400">Automatic replies for chats and groups</p>
+                    </div>
+                    
+                    <div class="link-card bg-gray-800 p-4 rounded-lg shadow-md">
+                        <i class="fas fa-image text-green-400 text-3xl mb-2"></i>
+                        <h3 class="text-xl font-bold text-green-300 mb-2">Media Tools</h3>
+                        <p class="text-gray-400">Image, sticker & video processing</p>
+                    </div>
+
+                    <div class="link-card bg-gray-800 p-4 rounded-lg shadow-md">
+                        <i class="fas fa-shield-alt text-purple-400 text-3xl mb-2"></i>
+                        <h3 class="text-xl font-bold text-purple-300 mb-2">Group Management</h3>
+                        <p class="text-gray-400">Advanced moderation tools</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Setup Steps -->
+            <div class="mb-12">
+                <h2 class="text-2xl font-bold mb-4 text-blue-400">📱 SETUP GUIDE</h2>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div class="link-card bg-gray-800 p-4 rounded-lg shadow-md">
+                        <div class="text-blue-400 font-bold mb-2">1. Install WhatsApp</div>
+                        <p class="text-gray-400">Ensure latest version installed</p>
+                    </div>
+                    
+                    <div class="link-card bg-gray-800 p-4 rounded-lg shadow-md">
+                        <div class="text-green-400 font-bold mb-2">2. Enter Number</div>
+                        <p class="text-gray-400">With country code (+123...)</p>
+                    </div>
+
+                    <div class="link-card bg-gray-800 p-4 rounded-lg shadow-md">
+                        <div class="text-purple-400 font-bold mb-2">3. Generate Code</div>
+                        <p class="text-gray-400">Get 8-digit pairing code</p>
+                    </div>
+
+                    <div class="link-card bg-gray-800 p-4 rounded-lg shadow-md">
+                        <div class="text-yellow-400 font-bold mb-2">4. Link Device</div>
+                        <p class="text-gray-400">In WhatsApp settings</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Social Links -->
+            <div class="mt-8 text-center">
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <a href="https://github.com/mrlit-a" 
+                       class="link-card bg-gray-800 p-4 rounded-lg shadow-md">
+                        <i class="fab fa-github text-blue-400"></i>
+                        <div class="text-blue-300 mt-2">GitHub</div>
+                    </a>
+                    
+                    <a href="https://chat.whatsapp.com/Jx7300IL1iVIaDUolVULBj" 
+                       class="link-card bg-gray-800 p-4 rounded-lg shadow-md">
+                        <i class="fab fa-whatsapp text-green-400"></i>
+                        <div class="text-green-300 mt-2">WhatsApp</div>
+                    </a>
+
+                    <a href="https://www.instagram.com/shizxy_andy/" 
+                       class="link-card bg-gray-800 p-4 rounded-lg shadow-md">
+                        <i class="fab fa-instagram text-purple-400"></i>
+                        <div class="text-purple-300 mt-2">Instagram</div>
+                    </a>
+                </div>
+            </div>
+        </main>
+
+        <footer class="mt-8 text-center text-gray-500">
+            <p>&copy; 2024 SHIZXY BOT. All rights reserved.</p>
+        </footer>
+    </div>
+
+    <div id="toast" class="toast"></div>
+
+    <!-- Keep original JavaScript intact -->
+    <script>
+        // Original JavaScript code remains unchanged
+        document.getElementById('pairingForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const phoneNumber = document.getElementById('phoneNumber').value;
+
+            if (!phoneNumber) {
+                showToast("Please enter a valid phone number!");
+                return;
+            }
+
+            try {
+                const response = await fetch('/pairing-code', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ phoneNumber })
+                });
+
+                const data = await response.json();
+
+                if (data.pairingCode) {
+                    document.getElementById('pairingCodeDisplay').innerText = 'Pairing Code: ' + data.pairingCode;
+                    document.getElementById('copyButton').style.display = 'inline-block';
+                } else {
+                    showToast('Error generating pairing code.');
+                }
+            } catch (error) {
+                showToast('Network error. Please try again.');
+            }
+        });
+
+        document.getElementById('copyButton').addEventListener('click', () => {
+            const codeText = document.getElementById('pairingCodeDisplay').innerText.replace('Pairing Code: ', '');
+            navigator.clipboard.writeText(codeText).then(() => {
+                showToast('Pairing Code copied to clipboard!');
+            }).catch(() => {
+                showToast('Failed to copy code.');
+            });
+        });
+
+        function showToast(message) {
+            const toast = document.getElementById('toast');
+            toast.textContent = message;
+            toast.classList.add('show');
+            setTimeout(() => {
+                toast.classList.remove('show');
+            }, 3000);
+        }
+    </script>
+</body>
+          </html>
