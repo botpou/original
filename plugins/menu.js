@@ -11,12 +11,14 @@ export const execute = async (Matrix, mek, { pushName, from, prefix }) => {
     const botName = "sʜɪᴢxʏ ʙᴏᴛ ᴍᴅ ★★★";
     const freeRam = formatBytes(os.freemem());
     const totalRam = formatBytes(os.totalmem());
-    const platform = 'OWN VPS';
+    const platform = 'vps (Linux generic)';
     const owner = '13056978303';
     const ownerName = '𝙼𝚛𝚕𝚒𝚝 𝙰𝚗𝚍𝚢';
 
-    const currentTime = moment().tz("America/Port-au-Prince").format("HH");
-    const wish = currentTime < 12 ? "Ayo wsp bro 😗" : currentTime < 18 ? "Bro Good Afternoon 😗" : "😴 Good Night";
+    const currentTime = moment().tz("America/Port-au-Prince").format("HH:mm:ss");
+    const day = moment().tz("America/Port-au-Prince").format("dddd");
+    const date = moment().tz("America/Port-au-Prince").format("YYYY-MM-DD");
+    const uptimeFormatted = formatUptime(process.uptime() * 1000);
 
     try {
         const pluginFiles = await readdir(pluginsDir);
@@ -29,39 +31,34 @@ export const execute = async (Matrix, mek, { pushName, from, prefix }) => {
             if (file.endsWith('.js')) {
                 const pluginModule = await import(path.join(pluginsDir, file));
                 const commands = Array.isArray(pluginModule.command) ? pluginModule.command : [pluginModule.command];
-                const description = pluginModule.description || '';
-                const usage = pluginModule.usage || '';
                 const category = pluginModule.category || 'General';
 
                 for (const command of commands) {
                     if (command) {
-                        plugins.push({ command, description, usage, category });
+                        plugins.push({ command, category });
                     }
                 }
             }
         }
 
-        const uptimeFormatted = formatUptime(process.uptime() * 1000);
-
-        let menuMessage = `${wish}, *${pushName}*!\nIM DA BIGGEST BIRD 🦅
-シ.\n`;
-        menuMessage += `╭─────────────━┈⊷\n`;
-        menuMessage += `│◦ 𝙱𝙾𝚃𝙽𝙰𝙼𝙴  ㋡ : *${botName}*\n`;
-        menuMessage += `│◦ 𝙲𝚁𝙴𝙰𝚃𝙾𝚁 𝙽𝙰𝙼𝙴   : *${ownerName}*\n`;
-        menuMessage += `│◦ 𝙲𝚁𝙴𝙰𝚃𝙾𝚁 𝙽𝚄𝙼𝙱𝙴𝚁 𖤍 : *${owner}*\n`;
-        menuMessage += `│◦ 𝚁𝚄𝙽𝚃𝙸𝙼𝙴  ◎ : *${uptimeFormatted}*\n`;
-        menuMessage += `│◦ 𝙿𝙻𝙰𝚃𝙵𝙾𝚁𝙼 ⏻ : *${platform}*\n`;
-        menuMessage += `│◦ 𝚃𝙾𝚃𝙰𝙻 𝙿𝙻𝚄𝙶𝙸𝙽𝚂  ◷ : *${pluginCount}*\n`;
-        menuMessage += `│◦ 𝚄𝚂𝙴𝚁𝚂 𝙲𝙾𝙽𝙽𝙴𝙲𝚃𝙴𝙳 ↻ : *${activeSessionsCount}*\n`;
-        menuMessage += `│◦ 𝙿𝚁𝙴𝙵𝙸𝚇 🝊 : *[${prefix}]*\n`;
-        menuMessage += `╰─────────────━┈⊷\n\n`;
+        let menuMessage = `\`\`\`┌───═❖═『 LEVANTER BETA 』═❖═───┐\n`;
+        menuMessage += `│\n`;
+        menuMessage += `│ ✦ Prefix : ${prefix}\n`;
+        menuMessage += `│ ✦ User : ${pushName}\n`;
+        menuMessage += `│ ✦ Creator : andy_mr_lit\n`;
+        menuMessage += `│ ✦ User connected : *${activeSessionsCount}*\n`;
+        menuMessage += `│ ✦ Version : 1.0.0-beta\n`;
+        menuMessage += `│ ✦ Uptime : ${uptimeFormatted}\n`;
+        menuMessage += `│ ✦ Platform : ${platform}\n`;
+        menuMessage += `│\n`;
+        menuMessage += `└───═❖═════════════════❖═───┘\`\`\`\n\n`;
 
         const categories = {};
-        for (const { command, description, usage, category } of plugins) {
+        for (const { command, category } of plugins) {
             if (!categories[category]) {
                 categories[category] = [];
             }
-            categories[category].push({ command, description, usage });
+            categories[category].push(command);
         }
 
         const categoryOrder = ['Downloader', 'AI', 'Converter', 'Main', 'General', 'Owner'];
@@ -70,14 +67,8 @@ export const execute = async (Matrix, mek, { pushName, from, prefix }) => {
                 menuMessage += `╭━━━━━━━━━━━━━━━⪼\n`;
                 menuMessage += `*\`➤❖${category.toUpperCase()} ᴍᴇɴᴜ❖\`*\n`;
                 menuMessage += `╰━━━━━━━━━━━━━━━⪼\n\n`;
-                for (const { command, description, usage } of categories[category]) {
-                    menuMessage += `*◦ 𖣘ᴄᴏᴍᴍᴀɴᴅ:* ${command}\n`;
-                    menuMessage += `*◦ 𖣘ᴅᴇsᴄʀɪᴘᴛɪᴏɴ:* ${description}\n`;
-                    menuMessage += `*◦ 𖣘ᴜsᴀɢᴇ:* ${
-                        typeof usage === 'function'
-                            ? usage(prefix)
-                            : `${prefix}${command} ${usage ? usage : ''}`
-                    }\n\n`;
+                for (const command of categories[category]) {
+                    menuMessage += `*◦ 𖣘ᴄᴏᴍᴍᴀɴᴅ:* ${command}\n\n`;
                 }
             }
         }
@@ -90,8 +81,8 @@ export const execute = async (Matrix, mek, { pushName, from, prefix }) => {
             contextInfo: {
                 externalAdReply: {
                     showAdAttribution: true,
-                    title: `${wish}, ${pushName}`,
-                    body: `${botName}`,
+                    title: `Yo ${pushName}, Welcome to ${botName}!`,
+                    body: `${botName} - Always Ready!`,
                     thumbnailUrl: "https://img101.pixhost.to/images/404/552534361_than.jpg",
                     mediaType: 2,
                     mediaUrl: "https://img101.pixhost.to/images/404/552534361_than.jpg"
@@ -124,5 +115,5 @@ function formatBytes(bytes, decimals = 2) {
 }
 
 export const command = ['menu'];
-export const description = 'Get the list of all available commands and their descriptions.';
+export const description = 'Get the list of all available commands.';
 export const category = 'Main';
