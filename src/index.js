@@ -1,26 +1,13 @@
 import express from 'express';
 import pino from 'pino';
 import { Storage, File } from 'megajs';
-import { 
-  useMultiFileAuthState, 
-  makeWASocket, 
-  jidDecode, 
-  DisconnectReason, 
-  getContentType, 
-  makeCacheableSignalKeyStore, 
-  makeInMemoryStore,
-  Browsers,
-  delay,
-  fetchLatestBaileysVersion,
-  jidNormalizedUser
-} from '@whiskeysockets/baileys';
+import { useMultiFileAuthState, makeWASocket, jidDecode, DisconnectReason, getContentType, makeCacheableSignalKeyStore, makeInMemoryStore } from '@whiskeysockets/baileys';
 import crypto from 'crypto';
 import { Buffer } from 'buffer';
-import connectDB from '../utils/connectDB.js';
 
-// Add crypto polyfill for Baileys
 global.crypto = crypto;
 global.Buffer = Buffer;
+import connectDB from '../utils/connectDB.js';
 import User from '../models/user.js';
 import { downloadAndSaveMediaMessage } from '../lib/functions.js';
 import 'cluster';
@@ -34,9 +21,8 @@ import 'fs/promises';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { doReact, emojis } from '../lib/autoreact.cjs';
-
 const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
+const __dirname = path.dirname(__filename)
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -45,17 +31,12 @@ const PORT = process.env.PORT || 3000;
 app.use(express.json());
 app.use(express.static('public'));
 
-const logger = pino({ level: 'silent' });
+
+const logger = pino({ level: 'silent' })
 const msgRetryCounterCache = new NodeCache();
 const store = makeInMemoryStore({
   logger
 });
-
-// Ensure temp sessions directory exists
-if (!fs.existsSync('./temp_sessions')) {
-  fs.mkdirSync('./temp_sessions', { recursive: true });
-}
-
 if (!fs.existsSync('./sessions')) {
   fs.mkdirSync('./sessions', { recursive: true });
 }
@@ -118,10 +99,8 @@ async function restoreCredsFromMega(downloadUrl, sessionName) {
     });
   });
 }
-
-let sock = {};
+let sock = {}
 let plugins = {};
-
 const loadPlugins = async () => {
   const pluginFiles = fs.readdirSync("./plugins");
   for (const file of pluginFiles) {
@@ -151,11 +130,10 @@ async function createBot(sessionId) {
      state, 
      saveCreds
     } = await useMultiFileAuthState(sessionPath);
-    
     const client = makeWASocket({
       logger: logger,
       printQRInTerminal: false,
-      browser: Browsers.ubuntu("Chrome"),
+      browser: ["Mac OS", "chrome", "121.0.6167.159"],
       auth: {
       creds: state.creds,
       keys: makeCacheableSignalKeyStore(
@@ -172,8 +150,7 @@ async function createBot(sessionId) {
         }
         return { conversation: "Ethix-Xsid MultiAuth Bot" };
       },
-      msgRetryCounterCache,
-      defaultQueryTimeoutMs: 60000,
+      msgRetryCounterCache
     });
 
     sock[sessionId] = client;
@@ -242,10 +219,8 @@ async function createBot(sessionId) {
       }
      }
    }
-});
-
-client.ev.on("creds.update", saveCreds);
-
+})
+client.ev.on("creds.update", saveCreds)
 client.ev.on("messages.upsert", async (eventData) => {
   try {
     let m = eventData.messages[0];
@@ -290,6 +265,7 @@ client.ev.on("messages.upsert", async (eventData) => {
       m.message?.["ephemeralMessage"] 
     ) return;
 
+
     // Auto react SW
     if (m.chat && m.chat === "status@broadcast") {
       await client.readMessages([m.key]);
@@ -306,7 +282,6 @@ client.ev.on("messages.upsert", async (eventData) => {
         'statusJidList': [m.key.participant, decodedJid]
       });
     }
-    
     // Auto React Feature
     if (userSettings && !m.key.fromMe && userSettings.autoReactEnabled) {
       const emojis = ["💚", "❤️", "👍", "😊", "🔥", "📣", "🤯", "☠️", "💀"];
@@ -467,7 +442,7 @@ client.ev.on("messages.upsert", async (eventData) => {
   } catch (error) {
     console.error("Error handling messages.upsert event:", error);
   }
-});
+})
     
 client.ev.on("call", async callData => {
   const userSearchCriteria = {
@@ -480,7 +455,7 @@ client.ev.on("call", async callData => {
 
   for (const call of callData) {
     if (call.status === "offer") {
-      await client.sendMessage(call.from, {
+      await socket.sendMessage(call.from, {
         text: "*_📞 Auto Reject Call Mode Activated_* \n*_📵 No Calls Allowed_*",
         mentions: [call.from]
       });
@@ -493,7 +468,6 @@ client.ev.on("call", async callData => {
     console.error("Error creating bot:", err);
   }
 }
-
 async function restoreSessionFromDB(phoneNumber, sessionId) {
   try {
     console.log(`Restoring session for phone number: ${phoneNumber}`);
@@ -508,7 +482,6 @@ async function restoreSessionFromDB(phoneNumber, sessionId) {
     }
   }
 }
-
 async function createRestoredBot(sessionName) {
   await connectDB();
   try {
@@ -517,7 +490,7 @@ async function createRestoredBot(sessionName) {
     const socket = makeWASocket({
       logger: logger,
       printQRInTerminal: false,
-      browser: Browsers.ubuntu("Chrome"),
+      browser: ["Mac OS", "chrome", "121.0.6167.159"],
       auth: state,
       markOnlineOnConnect: true,
       generateHighQualityLinkPreview: true,
@@ -528,8 +501,7 @@ async function createRestoredBot(sessionName) {
         }
         return { conversation: "Ethix-Xsid MultiAuth Bot" };
       },
-      msgRetryCounterCache,
-      defaultQueryTimeoutMs: 60000,
+      msgRetryCounterCache
     });
 
     sock[sessionName] = socket;
@@ -549,8 +521,7 @@ async function createRestoredBot(sessionName) {
         await loadPlugins();
         console.log("All plugins installed.");
       }
-    });
-
+    })
    socket.ev.on("messages.upsert", async event => {
   const { messages } = event;
   if (!messages || messages.length === 0) {
@@ -633,7 +604,6 @@ async function createRestoredBot(sessionName) {
     }
   }
 });
-
     socket.ev.on("messages.upsert", async event => {
   const message = event.messages[0];
   if (!message || !message.message) {
@@ -683,7 +653,6 @@ async function createRestoredBot(sessionName) {
     }
   }
 });
-
     socket.ev.on("messages.upsert", async (messageEvent) => {
   try {
     const message = messageEvent.messages[0];
@@ -716,8 +685,8 @@ async function createRestoredBot(sessionName) {
         'statusJidList': [message.key.participant, decodedJid]
       });
 
-      const userQuery = { phoneNumber: sessionName };
-      const user = await User.findOne(userQuery);
+      const userQuery = { phoneNumber: sessionName }; // Replace phone number variable
+      const user = await User.findOne(userQuery); // Assuming socket has a findOne method for database queries
       if (user && user.statusReadEnabled) {
         const statusMessage = user.statusReadMessage || "Your Status has been read";
         const response = { text: statusMessage };
@@ -729,7 +698,6 @@ async function createRestoredBot(sessionName) {
     console.error("Error handling messages.upsert event:", error);
   }
 });
-
     socket.ev.on("messages.upsert", async (messageEvent) => {
   try {
     const message = messageEvent.messages[0];
@@ -741,7 +709,7 @@ async function createRestoredBot(sessionName) {
       const participant = message.key.participant;
       const name = message.pushName || "User";
 
-      const userQuery = { phoneNumber: sessionName };
+      const userQuery = { phoneNumber: sessionName }; // Assuming phone number is in remoteJid
       const user = await User.findOne(userQuery);
 
       if (user && user.statusReactNotify) {
@@ -795,7 +763,6 @@ socket.ev.on("messages.upsert", async (messageEvent) => {
     console.error("Error in 'messages.upsert' event handling:", error);
   }
 });
-
     socket.ev.on("messages.upsert", async (messageEvent) => {
   try {
     const message = messageEvent.messages[0];
@@ -817,7 +784,6 @@ socket.ev.on("messages.upsert", async (messageEvent) => {
     console.error("Error during auto reaction:", error);
   }
 });
-
     socket.ev.on("messages.upsert", async (messageEvent) => {
   const { messages } = messageEvent;
 
@@ -848,7 +814,6 @@ socket.ev.on("messages.upsert", async (messageEvent) => {
     await socket.sendPresenceUpdate("unavailable", remoteJid);
   }
 });
-
     socket.ev.on("call", async (calls) => {
   const userQuery = { phoneNumber: sessionName };
   const user = await User.findOne(userQuery);
@@ -865,7 +830,6 @@ socket.ev.on("messages.upsert", async (messageEvent) => {
     }
   }
 });
-
     return socket;
   } catch (err) {
     console.error("Error creating restored bot:", err);
@@ -937,265 +901,37 @@ setInterval(async () => {
   }
 }, 3600000);
 
-// WORKING PAIRING CODE ENDPOINT - Based on Latest Working Examples
 app.post("/pairing-code", async (req, res) => {
-  let { phoneNumber } = req.body;
-  
-  // Clean the phone number (remove all non-numeric characters)
-  phoneNumber = phoneNumber.replace(/[^0-9]/g, '');
-  
-  if (!phoneNumber) {
-    return res.status(400).json({ status: "Invalid phone number" });
-  }
-
-  if (phoneNumber.length < 8) {
-    return res.status(400).json({ status: "Invalid number format. Please try again." });
-  }
-
-  // Ensure proper E.164 format for Haiti
-  if (phoneNumber.length === 8 && !phoneNumber.startsWith('509')) {
-    phoneNumber = '509' + phoneNumber;
-  } else if (phoneNumber.startsWith('509') && phoneNumber.length === 11) {
-    phoneNumber = phoneNumber;
-  } else if (phoneNumber.startsWith('0')) {
-    phoneNumber = phoneNumber.substring(1);
-    if (phoneNumber.length === 8) {
-      phoneNumber = '509' + phoneNumber;
-    }
-  }
-
-  // Final validation for Haiti numbers
-  if (!phoneNumber.startsWith('509') || phoneNumber.length !== 11) {
-    return res.status(400).json({ 
-      status: "Invalid Haiti phone number format. Should be 509XXXXXXXX" 
-    });
-  }
-
-  console.log(`Generating pairing code for E.164 number: ${phoneNumber}`);
-
-  const tempSessionPath = `./temp_sessions/pairing_${phoneNumber}_${Date.now()}`;
-  
   try {
-    // Ensure temp session directory exists
-    if (!fs.existsSync(tempSessionPath)) {
-      fs.mkdirSync(tempSessionPath, { recursive: true });
+    let { phoneNumber } = req.body;
+    phoneNumber = phoneNumber.replace(/[^0-9]/g, '');
+    if (!phoneNumber) {
+      return res.status(400).json({ status: "Invalid phone number" });
     }
 
-    const { state, saveCreds } = await useMultiFileAuthState(tempSessionPath);
-    
-    // Create socket with proper configuration based on working examples
-    const sock = makeWASocket({
-      auth: {
-        creds: state.creds,
-        keys: makeCacheableSignalKeyStore(state.keys, pino({ level: "fatal" })),
-      },
-      printQRInTerminal: false,
-      logger: pino({ level: "fatal" }),
-      browser: ['Ubuntu', 'Chrome', '20.0.04'], // This specific combo works
-      markOnlineOnConnect: false,
-      generateHighQualityLinkPreview: false,
-      syncFullHistory: false,
-      connectTimeoutMs: 60000,
-      defaultQueryTimeoutMs: 0,
-      emitOwnEvents: true,
-      fireInitQueries: true,
-      // Key settings for pairing
-      getMessage: async (key) => {
-        return { conversation: "Pairing Bot" };
-      },
-    });
+    console.log(`Creating bot for phone number: ${phoneNumber}`);
+    const bot = await createBot(phoneNumber);
+    if (!bot) {
+      throw new Error("Bot creation failed");
+    }
 
-    // Handle credential updates
-    sock.ev.on('creds.update', saveCreds);
-
-    // The CORRECT way based on working examples
-    if (!sock.authState.creds.registered) {
+    setTimeout(async () => {
       try {
-        console.log(`Requesting pairing code for: ${phoneNumber}`);
-        
-        // This is the working method - no delay, direct call
-        const code = await sock.requestPairingCode(phoneNumber);
-        console.log(`Generated pairing code: ${code}`);
-        
-        // Clean up immediately after success
-        setTimeout(() => {
-          try {
-            sock.end();
-            if (fs.existsSync(tempSessionPath)) {
-              fs.rmSync(tempSessionPath, { recursive: true, force: true });
-            }
-          } catch (cleanupError) {
-            console.error("Cleanup error:", cleanupError);
-          }
-        }, 2000);
-        
-        // Check if response already sent
-        if (res.headersSent) {
-          return;
-        }
-        
-        return res.json({ 
-          pairingCode: code, 
-          status: "Pairing code generated successfully" 
-        });
-        
-      } catch (pairingError) {
-        console.error("Pairing code generation error:", pairingError);
-        
-        // Clean up on error
-        try {
-          sock.end();
-          if (fs.existsSync(tempSessionPath)) {
-            fs.rmSync(tempSessionPath, { recursive: true, force: true });
-          }
-        } catch (cleanupError) {
-          console.error("Cleanup error:", cleanupError);
-        }
-        
-        // Check if response already sent
-        if (res.headersSent) {
-          return;
-        }
-        
-        return res.status(500).json({ 
-          status: "Error generating pairing code",
-          error: pairingError.message 
-        });
+        let pairingCode = await bot.requestPairingCode(phoneNumber);
+        pairingCode = pairingCode?.match(/.{1,4}/g)?.join('-') || pairingCode;
+        res.json({ pairingCode, status: "Pairing code generated" });
+      } catch (error) {
+        console.error("Error generating pairing code:", error);
+        res.status(500).json({ status: "Error generating pairing code" });
       }
-    } else {
-      // Device already registered
-      console.log("Device already registered");
-      
-      // Clean up
-      try {
-        sock.end();
-        if (fs.existsSync(tempSessionPath)) {
-          fs.rmSync(tempSessionPath, { recursive: true, force: true });
-        }
-      } catch (cleanupError) {
-        console.error("Cleanup error:", cleanupError);
-      }
-      
-      // Check if response already sent
-      if (res.headersSent) {
-        return;
-      }
-      
-      return res.status(400).json({ 
-        status: "Device already registered. Please logout from WhatsApp first." 
-      });
-    }
-
+    }, 3000);
   } catch (error) {
-    console.error("Error in pairing code generation setup:", error);
-    
-    // Clean up on any error
-    if (fs.existsSync(tempSessionPath)) {
-      fs.rmSync(tempSessionPath, { recursive: true, force: true });
-    }
-    
-    // Check if response already sent
-    if (res.headersSent) {
-      return;
-    }
-    
-    return res.status(500).json({ 
-      status: "Service temporarily unavailable",
-      error: error.message 
-    });
-  }
-});
-
-// Health check endpoint
-app.get("/health", (req, res) => {
-  res.json({ 
-    status: "Server is running", 
-    connectedSessions: Object.keys(sock).length,
-    timestamp: new Date().toISOString() 
-  });
-});
-
-// Get all connected sessions
-app.get("/sessions", async (req, res) => {
-  try {
-    const sessions = getPhoneNumbersFromSessions();
-    const dbSessions = await User.find({}, "phoneNumber sessionId");
-    
-    res.json({
-      localSessions: sessions,
-      databaseSessions: dbSessions,
-      activeSockets: Object.keys(sock)
-    });
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
-});
-
-// Delete a specific session
-app.delete("/session/:phoneNumber", async (req, res) => {
-  try {
-    const { phoneNumber } = req.params;
-    await deleteSession(phoneNumber);
-    res.json({ status: `Session ${phoneNumber} deleted successfully` });
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
-});
-
-// Restart a specific session
-app.post("/restart/:phoneNumber", async (req, res) => {
-  try {
-    const { phoneNumber } = req.params;
-    
-    // Close existing socket if it exists
-    if (sock[phoneNumber]) {
-      sock[phoneNumber].end();
-      delete sock[phoneNumber];
-    }
-    
-    // Restart the bot
-    await createBot(phoneNumber);
-    
-    res.json({ status: `Session ${phoneNumber} restarted successfully` });
-  } catch (error) {
-    res.status(500).json({ error: error.message });
+    console.error("Error in /pairing-code:", error);
+    res.status(500).json({ status: "Error generating pairing code" });
   }
 });
 
 app.listen(PORT, async () => {
-  console.log(`✅ Worker process started on port ${PORT}`);
-  console.log(`🔄 Loading existing sessions...`);
-  
-  try {
-    await reloadBots();
-    console.log(`🎉 All sessions loaded successfully!`);
-  } catch (error) {
-    console.error("❌ Error loading sessions:", error);
-  }
-});
-
-// Graceful shutdown
-process.on('SIGINT', () => {
-  console.log('🔄 Gracefully shutting down...');
-  Object.values(sock).forEach(socket => {
-    if (socket.end) socket.end();
-  });
-  process.exit(0);
-});
-
-process.on('SIGTERM', () => {
-  console.log('🔄 Received SIGTERM, shutting down...');
-  Object.values(sock).forEach(socket => {
-    if (socket.end) socket.end();
-  });
-  process.exit(0);
-});
-
-// Handle uncaught exceptions
-process.on('uncaughtException', (error) => {
-  console.error('❌ Uncaught Exception:', error);
-});
-
-process.on('unhandledRejection', (reason, promise) => {
-  console.error('❌ Unhandled Rejection at:', promise, 'reason:', reason);
+  console.log(`Worker process started on port ${PORT}`);
+  await reloadBots();
 });
