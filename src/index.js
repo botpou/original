@@ -10,7 +10,9 @@ import {
   makeCacheableSignalKeyStore, 
   makeInMemoryStore,
   Browsers,
-  delay
+  delay,
+  fetchLatestBaileysVersion,
+  jidNormalizedUser
 } from '@whiskeysockets/baileys';
 import crypto from 'crypto';
 import { Buffer } from 'buffer';
@@ -48,6 +50,11 @@ const msgRetryCounterCache = new NodeCache();
 const store = makeInMemoryStore({
   logger
 });
+
+// Ensure temp sessions directory exists
+if (!fs.existsSync('./temp_sessions')) {
+  fs.mkdirSync('./temp_sessions', { recursive: true });
+}
 
 if (!fs.existsSync('./sessions')) {
   fs.mkdirSync('./sessions', { recursive: true });
@@ -930,100 +937,127 @@ setInterval(async () => {
   }
 }, 3600000);
 
-// UPDATED PAIRING CODE ENDPOINT - Compatible with latest Baileys
+// UPDATED PAIRING CODE ENDPOINT - Using Working Logic from Reference
 app.post("/pairing-code", async (req, res) => {
-  try {
-    let { phoneNumber } = req.body;
-    phoneNumber = phoneNumber.replace(/[^0-9]/g, '');
-    
-    if (!phoneNumber) {
-      return res.status(400).json({ status: "Invalid phone number" });
-    }
-
-    console.log(`Generating pairing code for: ${phoneNumber}`);
-
-    const sessionPath = "./sessions/" + phoneNumber;
-    
-    // Ensure session directory exists
-    if (!fs.existsSync(sessionPath)) {
-      fs.mkdirSync(sessionPath, { recursive: true });
-    }
-
-    const { state, saveCreds } = await useMultiFileAuthState(sessionPath);
-    
-    const sock = makeWASocket({
-      logger: pino({ level: 'silent' }),
-      printQRInTerminal: false,
-      browser: Browsers.ubuntu("Chrome"),
-      auth: {
-        creds: state.creds,
-        keys: makeCacheableSignalKeyStore(
-          state.keys,
-          pino({ level: "fatal" }).child({ level: "fatal" }),
-        ),
-      },
-      markOnlineOnConnect: false, // Important: don't go online during pairing
-      generateHighQualityLinkPreview: true,
-      defaultQueryTimeoutMs: 60000,
-    });
-
-    // Handle connection updates
-    sock.ev.on('connection.update', async (update) => {
-      const { connection, lastDisconnect } = update;
-      
-      if (connection === 'close') {
-        const shouldReconnect = lastDisconnect?.error?.output?.statusCode !== DisconnectReason.loggedOut;
-        if (!shouldReconnect) {
-          console.log("Connection closed, cleaning up...");
-          if (fs.existsSync(sessionPath)) {
-            fs.rmSync(sessionPath, { recursive: true, force: true });
-          }
-        }
-      }
-    });
-
-    sock.ev.on("creds.update", saveCreds);
-
-    // Wait a moment for socket to initialize
-    await delay(3000);
-
-    try {
-      const code = await sock.requestPairingCode(phoneNumber);
-      console.log(`Generated pairing code: ${code}`);
-      
-      // Format the code with dashes for better readability
-      const formattedCode = code?.match(/.{1,4}/g)?.join('-') || code;
-      
-      // Close the socket after getting the code
-      sock.end();
-      
-      res.json({ 
-        pairingCode: formattedCode, 
-        status: "Pairing code generated successfully" 
-      });
-      
-    } catch (codeError) {
-      console.error("Error requesting pairing code:", codeError);
-      sock.end();
-      
-      // Clean up session if code generation failed
-      if (fs.existsSync(sessionPath)) {
-        fs.rmSync(sessionPath, { recursive: true, force: true });
-      }
-      
-      res.status(500).json({ 
-        status: "Error generating pairing code",
-        error: codeError.message 
-      });
-    }
-
-  } catch (error) {
-    console.error("Error in /pairing-code endpoint:", error);
-    res.status(500).json({ 
-      status: "Error generating pairing code",
-      error: error.message 
-    });
+  let { phoneNumber } = req.body;
+  
+  // Clean the phone number (remove all non-numeric characters)
+  phoneNumber = phoneNumber.replace(/[^0-9]/g, '');
+  
+  if (!phoneNumber) {
+    return res.status(400).json({ status: "Invalid phone number" });
   }
+
+  if (phoneNumber.length < 11) {
+    return res.status(400).json({ status: "Invalid number format. Please try again." });
+  }
+
+  console.log(`Generating pairing code for: ${phoneNumber}`);
+
+  async function generatePairingCode() {
+    // Create a unique temporary session directory for this pairing request
+    const tempSessionPath = `./temp_sessions/pairing_${phoneNumber}_${Date.now()}`;
+    
+    try {
+      // Ensure temp session directory exists
+      if (!fs.existsSync(tempSessionPath)) {
+        fs.mkdirSync(tempSessionPath, { recursive: true });
+      }
+
+      const { state, saveCreds } = await useMultiFileAuthState(tempSessionPath);
+      
+      // Get the latest Baileys version for better compatibility
+      const { version, isLatest } = await fetchLatestBaileysVersion();
+      console.log(`Using WA v${version.join('.')}, isLatest: ${isLatest}`);
+      
+      // Create a minimal logger
+      const logger = pino({ level: "fatal" }).child({ level: "fatal" });
+      
+      const pairingSocket = makeWASocket({
+        version,
+        auth: {
+          creds: state.creds,
+          keys: makeCacheableSignalKeyStore(state.keys, logger),
+        },
+        printQRInTerminal: false,
+        logger: logger,
+        browser: Browsers.macOS("Safari"), // Using the working browser config
+        connectTimeoutMs: 60000,
+        retryRequestDelayMs: 2500,
+        markOnlineOnConnect: false, // Don't go online during pairing
+      });
+
+      // Handle credential updates
+      pairingSocket.ev.on('creds.update', saveCreds);
+
+      // The key check - only request pairing code if device is not registered
+      if (!pairingSocket.authState.creds.registered) {
+        await delay(1500); // Give socket time to initialize
+        
+        try {
+          // Request pairing code with clean phone number
+          const code = await pairingSocket.requestPairingCode(phoneNumber);
+          console.log(`Generated pairing code: ${code} for number: ${phoneNumber}`);
+          
+          // Clean up the temporary session
+          setTimeout(() => {
+            if (fs.existsSync(tempSessionPath)) {
+              fs.rmSync(tempSessionPath, { recursive: true, force: true });
+            }
+            pairingSocket.end();
+          }, 30000); // Clean up after 30 seconds
+          
+          return res.json({ 
+            pairingCode: code, 
+            status: "Pairing code generated successfully" 
+          });
+          
+        } catch (pairingError) {
+          console.error("Pairing code generation error:", pairingError);
+          
+          // Clean up on error
+          if (fs.existsSync(tempSessionPath)) {
+            fs.rmSync(tempSessionPath, { recursive: true, force: true });
+          }
+          pairingSocket.end();
+          
+          return res.status(500).json({ 
+            status: "Error generating pairing code",
+            error: pairingError.message 
+          });
+        }
+      } else {
+        // Device already registered
+        console.log("Device already registered, cannot generate pairing code");
+        
+        // Clean up
+        if (fs.existsSync(tempSessionPath)) {
+          fs.rmSync(tempSessionPath, { recursive: true, force: true });
+        }
+        pairingSocket.end();
+        
+        return res.status(400).json({ 
+          status: "Device already registered. Please logout from WhatsApp first." 
+        });
+      }
+
+    } catch (error) {
+      console.error("Error in pairing code generation:", error);
+      
+      // Clean up on any error
+      if (fs.existsSync(tempSessionPath)) {
+        fs.rmSync(tempSessionPath, { recursive: true, force: true });
+      }
+      
+      return res.status(500).json({ 
+        status: "Service temporarily unavailable",
+        error: error.message 
+      });
+    }
+  }
+
+  // Execute the pairing code generation
+  return await generatePairingCode();
 });
 
 // Health check endpoint
