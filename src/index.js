@@ -937,7 +937,7 @@ setInterval(async () => {
   }
 }, 3600000);
 
-// UPDATED PAIRING CODE ENDPOINT - Using Working Logic from Reference
+// UPDATED PAIRING CODE ENDPOINT - Based on Official Baileys Documentation
 app.post("/pairing-code", async (req, res) => {
   let { phoneNumber } = req.body;
   
@@ -948,14 +948,35 @@ app.post("/pairing-code", async (req, res) => {
     return res.status(400).json({ status: "Invalid phone number" });
   }
 
-  if (phoneNumber.length < 11) {
+  if (phoneNumber.length < 8) {
     return res.status(400).json({ status: "Invalid number format. Please try again." });
   }
 
-  console.log(`Generating pairing code for: ${phoneNumber}`);
+  // Ensure proper E.164 format for Haiti
+  if (phoneNumber.length === 8 && !phoneNumber.startsWith('509')) {
+    // Add Haiti country code if just local number (31312968 -> 50931312968)
+    phoneNumber = '509' + phoneNumber;
+  } else if (phoneNumber.startsWith('509') && phoneNumber.length === 11) {
+    // Already in correct format (50931312968)
+    phoneNumber = phoneNumber;
+  } else if (phoneNumber.startsWith('0')) {
+    // Remove leading 0 if present
+    phoneNumber = phoneNumber.substring(1);
+    if (phoneNumber.length === 8) {
+      phoneNumber = '509' + phoneNumber;
+    }
+  }
+
+  // Final validation for Haiti numbers
+  if (!phoneNumber.startsWith('509') || phoneNumber.length !== 11) {
+    return res.status(400).json({ 
+      status: "Invalid Haiti phone number format. Should be 509XXXXXXXX" 
+    });
+  }
+
+  console.log(`Generating pairing code for E.164 number: ${phoneNumber}`);
 
   async function generatePairingCode() {
-    // Create a unique temporary session directory for this pairing request
     const tempSessionPath = `./temp_sessions/pairing_${phoneNumber}_${Date.now()}`;
     let pairingSocket = null;
     
@@ -982,19 +1003,20 @@ app.post("/pairing-code", async (req, res) => {
         },
         printQRInTerminal: false,
         logger: logger,
-        browser: Browsers.macOS("Safari"),
+        browser: ['Chrome (Linux)', '', ''], // Based on GitHub issue recommendations
         connectTimeoutMs: 60000,
         retryRequestDelayMs: 2500,
         markOnlineOnConnect: false,
-        generateHighQualityLinkPreview: false, // Disable to reduce connection overhead
+        generateHighQualityLinkPreview: false,
       });
 
       // Handle credential updates
       pairingSocket.ev.on('creds.update', saveCreds);
 
-      // Create a promise to handle the connection and pairing process
+      // Create a promise to handle the pairing process
       return new Promise((resolve, reject) => {
         let resolved = false;
+        let pairingCodeGenerated = false;
         
         // Set a timeout to prevent hanging
         const timeout = setTimeout(() => {
@@ -1004,7 +1026,7 @@ app.post("/pairing-code", async (req, res) => {
             cleanup();
             reject(new Error("Pairing code generation timeout"));
           }
-        }, 45000); // 45 second timeout
+        }, 45000);
 
         function cleanup() {
           try {
@@ -1020,114 +1042,22 @@ app.post("/pairing-code", async (req, res) => {
           }
         }
 
-        // Handle connection updates
-        pairingSocket.ev.on("connection.update", async (update) => {
+        // Handle connection updates - THE CORRECT WAY according to docs
+        pairingSocket.ev.on('connection.update', async (update) => {
           const { connection, lastDisconnect, qr } = update;
           
           console.log("Connection update:", connection);
           
-          if (connection === "connecting") {
-            console.log("Connecting to WhatsApp...");
-          } else if (connection === "open") {
-            console.log("Connection established, but we only need pairing code");
-            // If connection opens, it means device was already paired
-            if (!resolved) {
-              resolved = true;
-              cleanup();
-              resolve({
-                error: true,
-                message: "Device already registered. Please logout from WhatsApp first."
-              });
-            }
-          } else if (connection === "close") {
-            const statusCode = lastDisconnect?.error?.output?.statusCode;
-            console.log("Connection closed, status code:", statusCode);
+          // According to Baileys docs: request pairing code when connection is "connecting"
+          if ((connection === "connecting" || !!qr) && !pairingCodeGenerated) {
+            pairingCodeGenerated = true;
             
-            if (statusCode === 401 || statusCode === 403) {
-              // Authentication failed - this is expected for new pairing
-              console.log("Auth failed - proceeding with pairing code generation");
+            try {
+              console.log(`Requesting pairing code for: ${phoneNumber}`);
               
-              // Now try to generate pairing code
-              try {
-                // Check if device is registered
-                if (!pairingSocket.authState.creds.registered) {
-                  await delay(2000); // Give more time for socket to stabilize
-                  
-                  console.log("Requesting pairing code for:", phoneNumber);
-                  const code = await pairingSocket.requestPairingCode(phoneNumber);
-                  console.log(`Generated pairing code: ${code}`);
-                  
-                  if (!resolved) {
-                    resolved = true;
-                    cleanup();
-                    resolve({
-                      pairingCode: code,
-                      status: "Pairing code generated successfully"
-                    });
-                  }
-                } else {
-                  if (!resolved) {
-                    resolved = true;
-                    cleanup();
-                    resolve({
-                      error: true,
-                      message: "Device already registered"
-                    });
-                  }
-                }
-              } catch (pairingError) {
-                console.error("Error requesting pairing code:", pairingError);
-                if (!resolved) {
-                  resolved = true;
-                  cleanup();
-                  reject(pairingError);
-                }
-              }
-            } else if (statusCode === 428) {
-              // Connection closed before establishing - retry with pairing code
-              console.log("Connection closed before establishing, attempting pairing code generation");
-              
-              try {
-                await delay(2000);
-                if (!pairingSocket.authState.creds.registered) {
-                  const code = await pairingSocket.requestPairingCode(phoneNumber);
-                  console.log(`Generated pairing code: ${code}`);
-                  
-                  if (!resolved) {
-                    resolved = true;
-                    cleanup();
-                    resolve({
-                      pairingCode: code,
-                      status: "Pairing code generated successfully"
-                    });
-                  }
-                }
-              } catch (pairingError) {
-                console.error("Error in retry pairing code:", pairingError);
-                if (!resolved) {
-                  resolved = true;
-                  cleanup();
-                  reject(pairingError);
-                }
-              }
-            } else {
-              // Other connection errors
-              if (!resolved) {
-                resolved = true;
-                cleanup();
-                reject(new Error(`Connection failed with status: ${statusCode}`));
-              }
-            }
-          }
-        });
-
-        // Try to request pairing code immediately if not registered
-        setTimeout(async () => {
-          try {
-            if (!resolved && pairingSocket && !pairingSocket.authState.creds.registered) {
-              console.log("Attempting immediate pairing code generation");
+              // This is the OFFICIAL way according to Baileys documentation
               const code = await pairingSocket.requestPairingCode(phoneNumber);
-              console.log(`Generated pairing code immediately: ${code}`);
+              console.log(`Generated pairing code: ${code}`);
               
               if (!resolved) {
                 resolved = true;
@@ -1137,12 +1067,47 @@ app.post("/pairing-code", async (req, res) => {
                   status: "Pairing code generated successfully"
                 });
               }
+            } catch (pairingError) {
+              console.error("Error requesting pairing code:", pairingError);
+              if (!resolved) {
+                resolved = true;
+                cleanup();
+                reject(pairingError);
+              }
             }
-          } catch (immediateError) {
-            console.log("Immediate pairing failed, waiting for connection events:", immediateError.message);
-            // Don't reject here, let connection events handle it
+          } else if (connection === 'open') {
+            // Connection opened - device already paired
+            console.log("Device already paired");
+            if (!resolved) {
+              resolved = true;
+              cleanup();
+              resolve({
+                error: true,
+                message: "Device already registered. Please logout from WhatsApp first."
+              });
+            }
+          } else if (connection === 'close') {
+            const statusCode = lastDisconnect?.error?.output?.statusCode;
+            console.log("Connection closed, status code:", statusCode);
+            
+            // Handle specific disconnect reasons
+            if (statusCode === DisconnectReason.loggedOut) {
+              // Device logged out - this is good for pairing new device
+              console.log("Device logged out - ready for pairing");
+            } else if (statusCode === DisconnectReason.restartRequired) {
+              // Restart required
+              if (!resolved) {
+                resolved = true;
+                cleanup();
+                reject(new Error("Restart required"));
+              }
+            } else if (!pairingCodeGenerated) {
+              // If pairing code not generated yet and connection closed, it might be normal
+              console.log("Connection closed before pairing code generation");
+            }
           }
-        }, 3000);
+        });
+
       });
 
     } catch (error) {
