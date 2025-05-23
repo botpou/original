@@ -957,6 +957,7 @@ app.post("/pairing-code", async (req, res) => {
   async function generatePairingCode() {
     // Create a unique temporary session directory for this pairing request
     const tempSessionPath = `./temp_sessions/pairing_${phoneNumber}_${Date.now()}`;
+    let pairingSocket = null;
     
     try {
       // Ensure temp session directory exists
@@ -973,7 +974,7 @@ app.post("/pairing-code", async (req, res) => {
       // Create a minimal logger
       const logger = pino({ level: "fatal" }).child({ level: "fatal" });
       
-      const pairingSocket = makeWASocket({
+      pairingSocket = makeWASocket({
         version,
         auth: {
           creds: state.creds,
@@ -981,83 +982,205 @@ app.post("/pairing-code", async (req, res) => {
         },
         printQRInTerminal: false,
         logger: logger,
-        browser: Browsers.macOS("Safari"), // Using the working browser config
+        browser: Browsers.macOS("Safari"),
         connectTimeoutMs: 60000,
         retryRequestDelayMs: 2500,
-        markOnlineOnConnect: false, // Don't go online during pairing
+        markOnlineOnConnect: false,
+        generateHighQualityLinkPreview: false, // Disable to reduce connection overhead
       });
 
       // Handle credential updates
       pairingSocket.ev.on('creds.update', saveCreds);
 
-      // The key check - only request pairing code if device is not registered
-      if (!pairingSocket.authState.creds.registered) {
-        await delay(1500); // Give socket time to initialize
+      // Create a promise to handle the connection and pairing process
+      return new Promise((resolve, reject) => {
+        let resolved = false;
         
-        try {
-          // Request pairing code with clean phone number
-          const code = await pairingSocket.requestPairingCode(phoneNumber);
-          console.log(`Generated pairing code: ${code} for number: ${phoneNumber}`);
-          
-          // Clean up the temporary session
-          setTimeout(() => {
+        // Set a timeout to prevent hanging
+        const timeout = setTimeout(() => {
+          if (!resolved) {
+            resolved = true;
+            console.log("Pairing code generation timeout");
+            cleanup();
+            reject(new Error("Pairing code generation timeout"));
+          }
+        }, 45000); // 45 second timeout
+
+        function cleanup() {
+          try {
+            if (pairingSocket && pairingSocket.end) {
+              pairingSocket.end();
+            }
             if (fs.existsSync(tempSessionPath)) {
               fs.rmSync(tempSessionPath, { recursive: true, force: true });
             }
-            pairingSocket.end();
-          }, 30000); // Clean up after 30 seconds
-          
-          return res.json({ 
-            pairingCode: code, 
-            status: "Pairing code generated successfully" 
-          });
-          
-        } catch (pairingError) {
-          console.error("Pairing code generation error:", pairingError);
-          
-          // Clean up on error
-          if (fs.existsSync(tempSessionPath)) {
-            fs.rmSync(tempSessionPath, { recursive: true, force: true });
+            clearTimeout(timeout);
+          } catch (cleanupError) {
+            console.error("Cleanup error:", cleanupError);
           }
-          pairingSocket.end();
+        }
+
+        // Handle connection updates
+        pairingSocket.ev.on("connection.update", async (update) => {
+          const { connection, lastDisconnect, qr } = update;
           
-          return res.status(500).json({ 
-            status: "Error generating pairing code",
-            error: pairingError.message 
-          });
-        }
-      } else {
-        // Device already registered
-        console.log("Device already registered, cannot generate pairing code");
-        
-        // Clean up
-        if (fs.existsSync(tempSessionPath)) {
-          fs.rmSync(tempSessionPath, { recursive: true, force: true });
-        }
-        pairingSocket.end();
-        
-        return res.status(400).json({ 
-          status: "Device already registered. Please logout from WhatsApp first." 
+          console.log("Connection update:", connection);
+          
+          if (connection === "connecting") {
+            console.log("Connecting to WhatsApp...");
+          } else if (connection === "open") {
+            console.log("Connection established, but we only need pairing code");
+            // If connection opens, it means device was already paired
+            if (!resolved) {
+              resolved = true;
+              cleanup();
+              resolve({
+                error: true,
+                message: "Device already registered. Please logout from WhatsApp first."
+              });
+            }
+          } else if (connection === "close") {
+            const statusCode = lastDisconnect?.error?.output?.statusCode;
+            console.log("Connection closed, status code:", statusCode);
+            
+            if (statusCode === 401 || statusCode === 403) {
+              // Authentication failed - this is expected for new pairing
+              console.log("Auth failed - proceeding with pairing code generation");
+              
+              // Now try to generate pairing code
+              try {
+                // Check if device is registered
+                if (!pairingSocket.authState.creds.registered) {
+                  await delay(2000); // Give more time for socket to stabilize
+                  
+                  console.log("Requesting pairing code for:", phoneNumber);
+                  const code = await pairingSocket.requestPairingCode(phoneNumber);
+                  console.log(`Generated pairing code: ${code}`);
+                  
+                  if (!resolved) {
+                    resolved = true;
+                    cleanup();
+                    resolve({
+                      pairingCode: code,
+                      status: "Pairing code generated successfully"
+                    });
+                  }
+                } else {
+                  if (!resolved) {
+                    resolved = true;
+                    cleanup();
+                    resolve({
+                      error: true,
+                      message: "Device already registered"
+                    });
+                  }
+                }
+              } catch (pairingError) {
+                console.error("Error requesting pairing code:", pairingError);
+                if (!resolved) {
+                  resolved = true;
+                  cleanup();
+                  reject(pairingError);
+                }
+              }
+            } else if (statusCode === 428) {
+              // Connection closed before establishing - retry with pairing code
+              console.log("Connection closed before establishing, attempting pairing code generation");
+              
+              try {
+                await delay(2000);
+                if (!pairingSocket.authState.creds.registered) {
+                  const code = await pairingSocket.requestPairingCode(phoneNumber);
+                  console.log(`Generated pairing code: ${code}`);
+                  
+                  if (!resolved) {
+                    resolved = true;
+                    cleanup();
+                    resolve({
+                      pairingCode: code,
+                      status: "Pairing code generated successfully"
+                    });
+                  }
+                }
+              } catch (pairingError) {
+                console.error("Error in retry pairing code:", pairingError);
+                if (!resolved) {
+                  resolved = true;
+                  cleanup();
+                  reject(pairingError);
+                }
+              }
+            } else {
+              // Other connection errors
+              if (!resolved) {
+                resolved = true;
+                cleanup();
+                reject(new Error(`Connection failed with status: ${statusCode}`));
+              }
+            }
+          }
         });
-      }
+
+        // Try to request pairing code immediately if not registered
+        setTimeout(async () => {
+          try {
+            if (!resolved && pairingSocket && !pairingSocket.authState.creds.registered) {
+              console.log("Attempting immediate pairing code generation");
+              const code = await pairingSocket.requestPairingCode(phoneNumber);
+              console.log(`Generated pairing code immediately: ${code}`);
+              
+              if (!resolved) {
+                resolved = true;
+                cleanup();
+                resolve({
+                  pairingCode: code,
+                  status: "Pairing code generated successfully"
+                });
+              }
+            }
+          } catch (immediateError) {
+            console.log("Immediate pairing failed, waiting for connection events:", immediateError.message);
+            // Don't reject here, let connection events handle it
+          }
+        }, 3000);
+      });
 
     } catch (error) {
-      console.error("Error in pairing code generation:", error);
+      console.error("Error in pairing code generation setup:", error);
       
       // Clean up on any error
+      if (pairingSocket && pairingSocket.end) {
+        try {
+          pairingSocket.end();
+        } catch (endError) {
+          console.error("Error ending socket:", endError);
+        }
+      }
+      
       if (fs.existsSync(tempSessionPath)) {
         fs.rmSync(tempSessionPath, { recursive: true, force: true });
       }
       
-      return res.status(500).json({ 
-        status: "Service temporarily unavailable",
-        error: error.message 
-      });
+      throw error;
     }
   }
 
-  // Execute the pairing code generation
-  return await generatePairingCode();
+  // Execute the pairing code generation and handle response
+  try {
+    const result = await generatePairingCode();
+    
+    if (result.error) {
+      return res.status(400).json({ status: result.message });
+    } else {
+      return res.json(result);
+    }
+  } catch (error) {
+    console.error("Final error in pairing code generation:", error);
+    return res.status(500).json({ 
+      status: "Service temporarily unavailable",
+      error: error.message 
+    });
+  }
 });
 
 // Health check endpoint
