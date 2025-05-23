@@ -937,7 +937,7 @@ setInterval(async () => {
   }
 }, 3600000);
 
-// WORKING PAIRING CODE ENDPOINT - Based on GitHub Working Examples
+// WORKING PAIRING CODE ENDPOINT - Based on Latest Working Examples
 app.post("/pairing-code", async (req, res) => {
   let { phoneNumber } = req.body;
   
@@ -954,13 +954,10 @@ app.post("/pairing-code", async (req, res) => {
 
   // Ensure proper E.164 format for Haiti
   if (phoneNumber.length === 8 && !phoneNumber.startsWith('509')) {
-    // Add Haiti country code if just local number (31312968 -> 50931312968)
     phoneNumber = '509' + phoneNumber;
   } else if (phoneNumber.startsWith('509') && phoneNumber.length === 11) {
-    // Already in correct format (50931312968)
     phoneNumber = phoneNumber;
   } else if (phoneNumber.startsWith('0')) {
-    // Remove leading 0 if present
     phoneNumber = phoneNumber.substring(1);
     if (phoneNumber.length === 8) {
       phoneNumber = '509' + phoneNumber;
@@ -976,219 +973,128 @@ app.post("/pairing-code", async (req, res) => {
 
   console.log(`Generating pairing code for E.164 number: ${phoneNumber}`);
 
-  async function generatePairingCode() {
-    const tempSessionPath = `./temp_sessions/pairing_${phoneNumber}_${Date.now()}`;
+  const tempSessionPath = `./temp_sessions/pairing_${phoneNumber}_${Date.now()}`;
+  
+  try {
+    // Ensure temp session directory exists
+    if (!fs.existsSync(tempSessionPath)) {
+      fs.mkdirSync(tempSessionPath, { recursive: true });
+    }
+
+    const { state, saveCreds } = await useMultiFileAuthState(tempSessionPath);
     
-    try {
-      // Ensure temp session directory exists
-      if (!fs.existsSync(tempSessionPath)) {
-        fs.mkdirSync(tempSessionPath, { recursive: true });
-      }
+    // Create socket with proper configuration based on working examples
+    const sock = makeWASocket({
+      auth: {
+        creds: state.creds,
+        keys: makeCacheableSignalKeyStore(state.keys, pino({ level: "fatal" })),
+      },
+      printQRInTerminal: false,
+      logger: pino({ level: "fatal" }),
+      browser: ['Ubuntu', 'Chrome', '20.0.04'], // This specific combo works
+      markOnlineOnConnect: false,
+      generateHighQualityLinkPreview: false,
+      syncFullHistory: false,
+      connectTimeoutMs: 60000,
+      defaultQueryTimeoutMs: 0,
+      emitOwnEvents: true,
+      fireInitQueries: true,
+      // Key settings for pairing
+      getMessage: async (key) => {
+        return { conversation: "Pairing Bot" };
+      },
+    });
 
-      const { state, saveCreds } = await useMultiFileAuthState(tempSessionPath);
-      
-      // Create a minimal logger
-      const logger = pino({ level: "fatal" }).child({ level: "fatal" });
-      
-      const sock = makeWASocket({
-        auth: {
-          creds: state.creds,
-          keys: makeCacheableSignalKeyStore(state.keys, logger),
-        },
-        printQRInTerminal: false,
-        logger: logger,
-        browser: ['Windows', 'Firefox', '123.0'], // This specific combination works better
-        connectTimeoutMs: 60000,
-        defaultQueryTimeoutMs: 0,
-        keepAliveIntervalMs: 10000,
-        emitOwnEvents: true,
-        markOnlineOnConnect: false,
-        syncFullHistory: false,
-        fireInitQueries: true,
-      });
+    // Handle credential updates
+    sock.ev.on('creds.update', saveCreds);
 
-      // Handle credential updates
-      sock.ev.on('creds.update', saveCreds);
-
-      // Simple approach - try pairing code immediately if not registered
-      if (!sock.authState.creds.registered) {
-        try {
-          await delay(2000); // Give socket time to initialize
-          
-          console.log(`Requesting pairing code for: ${phoneNumber}`);
-          const code = await sock.requestPairingCode(phoneNumber);
-          console.log(`Generated pairing code: ${code}`);
-          
-          // Clean up
-          setTimeout(() => {
-            try {
-              sock.end();
-              if (fs.existsSync(tempSessionPath)) {
-                fs.rmSync(tempSessionPath, { recursive: true, force: true });
-              }
-            } catch (cleanupError) {
-              console.error("Cleanup error:", cleanupError);
+    // The CORRECT way based on working examples
+    if (!sock.authState.creds.registered) {
+      try {
+        console.log(`Requesting pairing code for: ${phoneNumber}`);
+        
+        // This is the working method - no delay, direct call
+        const code = await sock.requestPairingCode(phoneNumber);
+        console.log(`Generated pairing code: ${code}`);
+        
+        // Clean up immediately after success
+        setTimeout(() => {
+          try {
+            sock.end();
+            if (fs.existsSync(tempSessionPath)) {
+              fs.rmSync(tempSessionPath, { recursive: true, force: true });
             }
-          }, 5000);
-          
-          return res.json({ 
-            pairingCode: code, 
-            status: "Pairing code generated successfully" 
-          });
-          
-        } catch (pairingError) {
-          console.error("Direct pairing error:", pairingError);
-          
-          // Try alternative approach with connection event
-          return new Promise((resolve, reject) => {
-            let resolved = false;
-            let codeGenerated = false;
-            
-            const timeout = setTimeout(() => {
-              if (!resolved) {
-                resolved = true;
-                try {
-                  sock.end();
-                  if (fs.existsSync(tempSessionPath)) {
-                    fs.rmSync(tempSessionPath, { recursive: true, force: true });
-                  }
-                } catch (e) {}
-                reject(new Error("Timeout generating pairing code"));
-              }
-            }, 30000);
-
-            // Connection event handler
-            sock.ev.on('connection.update', async (update) => {
-              const { connection, lastDisconnect } = update;
-              
-              if (connection === 'connecting' && !codeGenerated) {
-                codeGenerated = true;
-                try {
-                  const code = await sock.requestPairingCode(phoneNumber);
-                  console.log(`Generated pairing code via connection event: ${code}`);
-                  
-                  if (!resolved) {
-                    resolved = true;
-                    clearTimeout(timeout);
-                    try {
-                      sock.end();
-                      if (fs.existsSync(tempSessionPath)) {
-                        fs.rmSync(tempSessionPath, { recursive: true, force: true });
-                      }
-                    } catch (e) {}
-                    resolve({
-                      pairingCode: code,
-                      status: "Pairing code generated successfully"
-                    });
-                  }
-                } catch (err) {
-                  console.error("Connection event pairing error:", err);
-                  if (!resolved) {
-                    resolved = true;
-                    clearTimeout(timeout);
-                    try {
-                      sock.end();
-                      if (fs.existsSync(tempSessionPath)) {
-                        fs.rmSync(tempSessionPath, { recursive: true, force: true });
-                      }
-                    } catch (e) {}
-                    reject(err);
-                  }
-                }
-              } else if (connection === 'open' && !resolved) {
-                resolved = true;
-                clearTimeout(timeout);
-                try {
-                  sock.end();
-                  if (fs.existsSync(tempSessionPath)) {
-                    fs.rmSync(tempSessionPath, { recursive: true, force: true });
-                  }
-                } catch (e) {}
-                reject(new Error("Device already registered"));
-              } else if (connection === 'close' && !codeGenerated && !resolved) {
-                // Try one more time after close
-                setTimeout(async () => {
-                  if (!resolved && !codeGenerated) {
-                    try {
-                      const code = await sock.requestPairingCode(phoneNumber);
-                      console.log(`Generated pairing code after close: ${code}`);
-                      
-                      if (!resolved) {
-                        resolved = true;
-                        clearTimeout(timeout);
-                        try {
-                          sock.end();
-                          if (fs.existsSync(tempSessionPath)) {
-                            fs.rmSync(tempSessionPath, { recursive: true, force: true });
-                          }
-                        } catch (e) {}
-                        resolve({
-                          pairingCode: code,
-                          status: "Pairing code generated successfully"
-                        });
-                      }
-                    } catch (err) {
-                      if (!resolved) {
-                        resolved = true;
-                        clearTimeout(timeout);
-                        try {
-                          sock.end();
-                          if (fs.existsSync(tempSessionPath)) {
-                            fs.rmSync(tempSessionPath, { recursive: true, force: true });
-                          }
-                        } catch (e) {}
-                        reject(err);
-                      }
-                    }
-                  }
-                }, 1000);
-              }
-            });
-          });
+          } catch (cleanupError) {
+            console.error("Cleanup error:", cleanupError);
+          }
+        }, 2000);
+        
+        // Check if response already sent
+        if (res.headersSent) {
+          return;
         }
-      } else {
-        // Device already registered
+        
+        return res.json({ 
+          pairingCode: code, 
+          status: "Pairing code generated successfully" 
+        });
+        
+      } catch (pairingError) {
+        console.error("Pairing code generation error:", pairingError);
+        
+        // Clean up on error
+        try {
+          sock.end();
+          if (fs.existsSync(tempSessionPath)) {
+            fs.rmSync(tempSessionPath, { recursive: true, force: true });
+          }
+        } catch (cleanupError) {
+          console.error("Cleanup error:", cleanupError);
+        }
+        
+        // Check if response already sent
+        if (res.headersSent) {
+          return;
+        }
+        
+        return res.status(500).json({ 
+          status: "Error generating pairing code",
+          error: pairingError.message 
+        });
+      }
+    } else {
+      // Device already registered
+      console.log("Device already registered");
+      
+      // Clean up
+      try {
         sock.end();
         if (fs.existsSync(tempSessionPath)) {
           fs.rmSync(tempSessionPath, { recursive: true, force: true });
         }
-        return res.status(400).json({ 
-          status: "Device already registered. Please logout from WhatsApp first." 
-        });
-      }
-
-    } catch (error) {
-      console.error("Error in pairing code generation setup:", error);
-      
-      // Clean up on any error
-      if (fs.existsSync(tempSessionPath)) {
-        fs.rmSync(tempSessionPath, { recursive: true, force: true });
+      } catch (cleanupError) {
+        console.error("Cleanup error:", cleanupError);
       }
       
-      throw error;
+      // Check if response already sent
+      if (res.headersSent) {
+        return;
+      }
+      
+      return res.status(400).json({ 
+        status: "Device already registered. Please logout from WhatsApp first." 
+      });
     }
-  }
 
-  // Execute the pairing code generation and handle response
-  try {
-    const result = await generatePairingCode();
-    
-    // Check if response has already been sent
-    if (res.headersSent) {
-      return;
-    }
-    
-    if (result && result.error) {
-      return res.status(400).json({ status: result.message });
-    } else if (result && result.pairingCode) {
-      return res.json(result);
-    } else {
-      return res.status(500).json({ status: "Failed to generate pairing code" });
-    }
   } catch (error) {
-    console.error("Final error in pairing code generation:", error);
+    console.error("Error in pairing code generation setup:", error);
     
-    // Check if response has already been sent
+    // Clean up on any error
+    if (fs.existsSync(tempSessionPath)) {
+      fs.rmSync(tempSessionPath, { recursive: true, force: true });
+    }
+    
+    // Check if response already sent
     if (res.headersSent) {
       return;
     }
