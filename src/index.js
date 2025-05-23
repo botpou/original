@@ -12,7 +12,13 @@ import {
   Browsers,
   delay
 } from '@whiskeysockets/baileys';
+import crypto from 'crypto';
+import { Buffer } from 'buffer';
 import connectDB from '../utils/connectDB.js';
+
+// Add crypto polyfill for Baileys
+global.crypto = crypto;
+global.Buffer = Buffer;
 import User from '../models/user.js';
 import { downloadAndSaveMediaMessage } from '../lib/functions.js';
 import 'cluster';
