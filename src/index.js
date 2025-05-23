@@ -1173,6 +1173,11 @@ app.post("/pairing-code", async (req, res) => {
   try {
     const result = await generatePairingCode();
     
+    // Check if response has already been sent
+    if (res.headersSent) {
+      return;
+    }
+    
     if (result && result.error) {
       return res.status(400).json({ status: result.message });
     } else if (result && result.pairingCode) {
@@ -1182,6 +1187,12 @@ app.post("/pairing-code", async (req, res) => {
     }
   } catch (error) {
     console.error("Final error in pairing code generation:", error);
+    
+    // Check if response has already been sent
+    if (res.headersSent) {
+      return;
+    }
+    
     return res.status(500).json({ 
       status: "Service temporarily unavailable",
       error: error.message 
