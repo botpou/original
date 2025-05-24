@@ -699,7 +699,7 @@ setInterval(async () => {
   }
 }, 3600000);
 
-// UPDATED PAIRING CODE ENDPOINT FOR LATEST BAILEYS VERSION
+// UPDATED PAIRING CODE ENDPOINT WITH CONNECTION HANDLING
 app.post("/pairing-code", async (req, res) => {
   try {
     let { phoneNumber } = req.body;
@@ -718,7 +718,7 @@ app.post("/pairing-code", async (req, res) => {
 
     const { state, saveCreds } = await useMultiFileAuthState(sessionPath);
     
-    // Important: Add pairingEphemeralKeyPair if missing (key fix)
+    // Important: Add pairingEphemeralKeyPair if missing
     if (!state.creds.pairingEphemeralKeyPair) {
       const { publicKey, privateKey } = crypto.generateKeyPairSync('ed25519');
       state.creds.pairingEphemeralKeyPair = {
@@ -741,10 +741,32 @@ app.post("/pairing-code", async (req, res) => {
       version: [2, 2413, 3]
     });
 
+    // Set up connection promise to wait for connection
+    const connectionPromise = new Promise((resolve, reject) => {
+      const timeoutId = setTimeout(() => {
+        reject(new Error('Connection timeout after 30 seconds'));
+      }, 30000);
+      
+      pairingSocket.ev.on('connection.update', ({ connection }) => {
+        if (connection === 'open') {
+          clearTimeout(timeoutId);
+          resolve();
+        } else if (connection === 'close') {
+          clearTimeout(timeoutId);
+          reject(new Error('Connection closed prematurely'));
+        }
+      });
+    });
+
     pairingSocket.ev.on('creds.update', saveCreds);
 
     try {
+      // Wait for connection to be established first
+      await connectionPromise;
+      
       const formattedNumber = phoneNumber.startsWith('+') ? phoneNumber : `+${phoneNumber}`;
+      console.log(`Requesting pairing code for ${formattedNumber}`);
+      
       const code = await pairingSocket.requestPairingCode(formattedNumber);
       
       if (!code) {
@@ -765,13 +787,15 @@ app.post("/pairing-code", async (req, res) => {
     } catch (pairingError) {
       console.error("Error generating pairing code:", pairingError);
       
-      if (pairingSocket) {
+      try {
         pairingSocket.ev.removeAllListeners('connection.update');
         pairingSocket.ev.removeAllListeners('creds.update');
-      }
-      
-      if (sock[phoneNumber]) {
-        delete sock[phoneNumber];
+        
+        if (sock[phoneNumber]) {
+          delete sock[phoneNumber];
+        }
+      } catch (cleanupError) {
+        console.error("Error during cleanup:", cleanupError);
       }
       
       res.status(500).json({ 
