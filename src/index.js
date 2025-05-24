@@ -699,7 +699,7 @@ setInterval(async () => {
   }
 }, 3600000);
 
-// UPDATED PAIRING CODE ENDPOINT WITH CONNECTION HANDLING
+// ALTERNATIVE APPROACH
 app.post("/pairing-code", async (req, res) => {
   try {
     let { phoneNumber } = req.body;
@@ -718,17 +718,26 @@ app.post("/pairing-code", async (req, res) => {
 
     const { state, saveCreds } = await useMultiFileAuthState(sessionPath);
     
-    // Important: Add pairingEphemeralKeyPair if missing
     if (!state.creds.pairingEphemeralKeyPair) {
       const { publicKey, privateKey } = crypto.generateKeyPairSync('ed25519');
       state.creds.pairingEphemeralKeyPair = {
         private: privateKey.export({ type: 'pkcs8', format: 'der' }),
         public: publicKey.export({ type: 'spki', format: 'der' })
       };
+      await saveCreds();
     }
     
+    const formattedNumber = phoneNumber.startsWith('+') ? phoneNumber : `+${phoneNumber}`;
+    
+    // Set me.id before creating the socket
+    state.creds.me = {
+      id: jidEncode(phoneNumber, 's.whatsapp.net'),
+      name: '~'
+    };
+    await saveCreds();
+    
     const pairingSocket = makeWASocket({
-      logger: pino({ level: 'silent' }),
+      logger: pino({ level: 'trace' }), // Changed to trace for more logging
       printQRInTerminal: false,
       browser: Browsers.ubuntu('Chrome'),
       auth: {
@@ -738,72 +747,56 @@ app.post("/pairing-code", async (req, res) => {
       markOnlineOnConnect: false,
       syncFullHistory: false,
       shouldSyncHistoryMessage: () => false,
-      version: [2, 2413, 3]
-    });
-
-    // Set up connection promise to wait for connection
-    const connectionPromise = new Promise((resolve, reject) => {
-      const timeoutId = setTimeout(() => {
-        reject(new Error('Connection timeout after 30 seconds'));
-      }, 30000);
-      
-      pairingSocket.ev.on('connection.update', ({ connection }) => {
-        if (connection === 'open') {
-          clearTimeout(timeoutId);
-          resolve();
-        } else if (connection === 'close') {
-          clearTimeout(timeoutId);
-          reject(new Error('Connection closed prematurely'));
-        }
-      });
+      version: [2, 2414, 10] // Updated version
     });
 
     pairingSocket.ev.on('creds.update', saveCreds);
-
+    
+    let codeResult = null;
+    
+    // Try to generate a pairing code immediately
     try {
-      // Wait for connection to be established first
-      await connectionPromise;
-      
-      const formattedNumber = phoneNumber.startsWith('+') ? phoneNumber : `+${phoneNumber}`;
       console.log(`Requesting pairing code for ${formattedNumber}`);
+      codeResult = await pairingSocket.requestPairingCode(formattedNumber);
+    } catch (initialError) {
+      console.log("Initial pairing code request failed, waiting for connection...");
       
-      const code = await pairingSocket.requestPairingCode(formattedNumber);
-      
-      if (!code) {
-        throw new Error('Failed to generate pairing code');
-      }
-      
-      const formattedCode = code.match(/.{1,3}/g)?.join('-') || code;
-      console.log(`✅ Pairing code generated: ${formattedCode}`);
-      
-      sock[phoneNumber] = pairingSocket;
-      
-      res.json({
-        pairingCode: formattedCode,
-        status: "success",
-        message: "Enter this code in WhatsApp > Linked Devices > Link a Device"
-      });
-      
-    } catch (pairingError) {
-      console.error("Error generating pairing code:", pairingError);
-      
-      try {
-        pairingSocket.ev.removeAllListeners('connection.update');
-        pairingSocket.ev.removeAllListeners('creds.update');
+      // Wait for connection and try again
+      await new Promise((resolve, reject) => {
+        const timeoutId = setTimeout(() => {
+          reject(new Error('Connection timeout after 15 seconds'));
+        }, 15000);
         
-        if (sock[phoneNumber]) {
-          delete sock[phoneNumber];
-        }
-      } catch (cleanupError) {
-        console.error("Error during cleanup:", cleanupError);
-      }
-      
-      res.status(500).json({ 
-        status: "error",
-        message: "Failed to generate pairing code",
-        error: pairingError.message
+        pairingSocket.ev.on('connection.update', async update => {
+          console.log("Connection update:", update);
+          if (update.connection === 'open') {
+            try {
+              clearTimeout(timeoutId);
+              codeResult = await pairingSocket.requestPairingCode(formattedNumber);
+              resolve();
+            } catch (err) {
+              reject(err);
+            }
+          }
+        });
       });
     }
+    
+    if (!codeResult) {
+      throw new Error('Failed to generate pairing code');
+    }
+    
+    const formattedCode = codeResult.match(/.{1,3}/g)?.join('-') || codeResult;
+    console.log(`✅ Pairing code generated: ${formattedCode}`);
+    
+    sock[phoneNumber] = pairingSocket;
+    
+    res.json({
+      pairingCode: formattedCode,
+      status: "success",
+      message: "Enter this code in WhatsApp > Linked Devices > Link a Device"
+    });
+    
   } catch (error) {
     console.error("Error in /pairing-code:", error);
     res.status(500).json({ 
