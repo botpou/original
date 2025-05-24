@@ -1,12 +1,17 @@
 import express from 'express';
 import pino from 'pino';
 import { Storage, File } from 'megajs';
-import { useMultiFileAuthState, makeWASocket, jidDecode, DisconnectReason, getContentType, makeCacheableSignalKeyStore, makeInMemoryStore, Browsers } from '@whiskeysockets/baileys';
-import crypto from 'crypto';
-import { Buffer } from 'buffer';
-
-global.crypto = crypto;
-global.Buffer = Buffer;
+import { 
+  useMultiFileAuthState, 
+  makeWASocket, 
+  Browsers,
+  makeCacheableSignalKeyStore, 
+  jidEncode,
+  Curve,
+  signedKeyPair,
+  generateRegistrationId 
+} from '@whiskeysockets/baileys';
+import { randomBytes } from 'crypto';
 import connectDB from '../utils/connectDB.js';
 import User from '../models/user.js';
 import { downloadAndSaveMediaMessage } from '../lib/functions.js';
@@ -699,7 +704,7 @@ setInterval(async () => {
   }
 }, 3600000);
 
-/// FIXED IMPLEMENTATION WITH PROPER IMPORTS
+//// FIXED PAIRING CODE IMPLEMENTATION
 app.post("/pairing-code", async (req, res) => {
   try {
     let { phoneNumber } = req.body;
@@ -716,93 +721,114 @@ app.post("/pairing-code", async (req, res) => {
       fs.mkdirSync(sessionPath, { recursive: true });
     }
 
-    // If there's an existing socket, disconnect it properly
-    if (sock[phoneNumber]) {
-      try {
-        sock[phoneNumber].end();
-        delete sock[phoneNumber];
-        console.log(`Closed existing socket for ${phoneNumber}`);
-      } catch (err) {
-        console.log(`Error closing existing socket: ${err.message}`);
-      }
-    }
-
-    // Start fresh with auth state
+    // Initialize with fresh auth state
     const { state, saveCreds } = await useMultiFileAuthState(sessionPath);
     
-    // Generate required keys for pairing
-    const { publicKey, privateKey } = crypto.generateKeyPairSync('ed25519', {
-      modulusLength: 2048,
-      publicKeyEncoding: { type: 'spki', format: 'der' },
-      privateKeyEncoding: { type: 'pkcs8', format: 'der' }
-    });
+    // Create the required keys if they don't exist
+    if (!state.creds.noiseKey) {
+      state.creds.noiseKey = Curve.generateKeyPair();
+    }
     
-    // Ensure all necessary creds are set up
-    state.creds.pairingEphemeralKeyPair = {
-      private: privateKey,
-      public: publicKey
-    };
+    if (!state.creds.signedIdentityKey) {
+      const identityKeyPair = Curve.generateKeyPair();
+      state.creds.signedIdentityKey = identityKeyPair;
+    }
     
-    // Format the phone number - no need for jidEncode here
-    const formattedNumber = phoneNumber.startsWith('+') ? phoneNumber : `+${phoneNumber}`;
+    if (!state.creds.signedPreKey) {
+      state.creds.signedPreKey = signedKeyPair(state.creds.signedIdentityKey, 1);
+    }
     
-    // Create socket with simpler configuration
-    const pairingSocket = makeWASocket({
+    if (!state.creds.registrationId) {
+      state.creds.registrationId = generateRegistrationId();
+    }
+    
+    if (!state.creds.advSecretKey) {
+      state.creds.advSecretKey = randomBytes(32).toString('base64');
+    }
+    
+    // This is CRITICAL - must be generated for pairing code to work
+    state.creds.pairingEphemeralKeyPair = Curve.generateKeyPair();
+    
+    // Save the updated credentials
+    await saveCreds();
+
+    // Create socket connection
+    const socket = makeWASocket({
       logger: pino({ level: 'silent' }),
       printQRInTerminal: false,
       browser: Browsers.ubuntu('Chrome'),
       auth: {
         creds: state.creds,
-        keys: makeCacheableSignalKeyStore(state.keys, logger),
+        keys: makeCacheableSignalKeyStore(state.keys, pino({ level: 'silent' })),
       },
       markOnlineOnConnect: false,
+      connectTimeoutMs: 60000,
+      defaultQueryTimeoutMs: 60000,
       syncFullHistory: false,
       shouldSyncHistoryMessage: () => false,
     });
-    
-    // Handle connection updates
-    pairingSocket.ev.on('connection.update', update => {
-      console.log(`Connection update for ${phoneNumber}:`, JSON.stringify(update));
-    });
-    
-    // Save creds whenever they're updated
-    pairingSocket.ev.on('creds.update', saveCreds);
 
-    // Store the socket for future reference
-    sock[phoneNumber] = pairingSocket;
-    
-    // Wait for 5 seconds to allow connection to stabilize
-    await new Promise(resolve => setTimeout(resolve, 5000));
-    
+    // Handle connection updates
+    socket.ev.on('connection.update', async (update) => {
+      const { connection } = update;
+      console.log('Connection update:', update);
+    });
+
+    // Handle credentials updates
+    socket.ev.on('creds.update', async () => {
+      await saveCreds();
+    });
+
     try {
-      console.log(`Requesting pairing code for ${formattedNumber}`);
+      // The number needs to have "+" prefix when calling requestPairingCode
+      const formattedNumber = phoneNumber.startsWith('+') ? phoneNumber : `+${phoneNumber}`;
       
-      const code = await pairingSocket.requestPairingCode(formattedNumber);
+      // First we need to wait for socket to be connected
+      await new Promise((resolve, reject) => {
+        const checkInterval = setInterval(() => {
+          if (socket.user) {
+            clearInterval(checkInterval);
+            resolve(true);
+            return;
+          }
+        }, 1000);
+        
+        // Timeout if connection not established in 15 seconds
+        setTimeout(() => {
+          clearInterval(checkInterval);
+          console.log("Socket connection timed out, attempting to request pairing code anyway");
+          resolve(false);
+        }, 15000);
+      });
+      
+      console.log(`Requesting pairing code for ${formattedNumber}`);
+      const code = await socket.requestPairingCode(formattedNumber);
       
       if (!code) {
-        throw new Error('Empty pairing code received');
+        throw new Error('Failed to generate pairing code');
       }
       
       const formattedCode = code.match(/.{1,3}/g)?.join('-') || code;
       console.log(`✅ Pairing code generated: ${formattedCode}`);
+      
+      sock[phoneNumber] = socket;
       
       res.json({
         pairingCode: formattedCode,
         status: "success",
         message: "Enter this code in WhatsApp > Linked Devices > Link a Device"
       });
-      
     } catch (pairingError) {
-      console.error("Error requesting pairing code:", pairingError);
+      console.error("Error generating pairing code:", pairingError);
+      
       res.status(500).json({
         status: "error",
         message: "Failed to generate pairing code",
         error: pairingError.message
       });
     }
-    
   } catch (error) {
-    console.error("Error in /pairing-code endpoint:", error);
+    console.error("Error in /pairing-code:", error);
     res.status(500).json({
       status: "error",
       message: "Server error while setting up pairing",
