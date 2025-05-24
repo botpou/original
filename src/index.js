@@ -700,7 +700,6 @@ setInterval(async () => {
 }, 3600000);
 
 // FIXED PAIRING CODE ENDPOINT
-// UPDATED PAIRING CODE ENDPOINT FOR LATEST BAILEYS VERSION
 app.post("/pairing-code", async (req, res) => {
   try {
     let { phoneNumber } = req.body;
@@ -710,83 +709,85 @@ app.post("/pairing-code", async (req, res) => {
       return res.status(400).json({ status: "Invalid phone number" });
     }
 
-    console.log(`Creating pairing session for phone number: ${phoneNumber}`);
+    console.log(`Creating bot for phone number: ${phoneNumber}`);
     
-    const sessionPath = `./sessions/${phoneNumber}`;
-    if (!fs.existsSync(sessionPath)) {
-      fs.mkdirSync(sessionPath, { recursive: true });
+    // Check if session already exists
+    const existingSession = sock[phoneNumber];
+    if (existingSession && existingSession.authState?.creds?.registered) {
+      return res.status(400).json({ 
+        status: "Session already exists",
+        message: "This phone number is already connected" 
+      });
     }
 
-    const { state, saveCreds } = await useMultiFileAuthState(sessionPath);
-    
-    // Important: Add pairingEphemeralKeyPair if missing (key fix)
-    if (!state.creds.pairingEphemeralKeyPair) {
-      const { publicKey, privateKey } = crypto.generateKeyPairSync('ed25519');
-      state.creds.pairingEphemeralKeyPair = {
-        private: privateKey.export({ type: 'pkcs8', format: 'der' }),
-        public: publicKey.export({ type: 'spki', format: 'der' })
-      };
+    const bot = await createBot(phoneNumber);
+    if (!bot) {
+      throw new Error("Bot creation failed");
     }
-    
-    const pairingSocket = makeWASocket({
-      logger: pino({ level: 'silent' }),
-      printQRInTerminal: false,
-      browser: Browsers.ubuntu('Chrome'),
-      auth: {
-        creds: state.creds,
-        keys: makeCacheableSignalKeyStore(state.keys, pino({ level: 'silent' })),
-      },
-      markOnlineOnConnect: false,
-      syncFullHistory: false,
-      shouldSyncHistoryMessage: () => false,
-      version: [2, 2413, 3]
+
+    // Wait for connection to be established
+    await new Promise((resolve) => {
+      const checkConnection = setInterval(() => {
+        if (bot.authState) {
+          clearInterval(checkConnection);
+          resolve();
+        }
+      }, 100);
+      
+      // Timeout after 10 seconds
+      setTimeout(() => {
+        clearInterval(checkConnection);
+        resolve();
+      }, 10000);
     });
 
-    pairingSocket.ev.on('creds.update', saveCreds);
+    // Check if already registered
+    if (bot.authState?.creds?.registered) {
+      return res.json({ 
+        status: "Already registered",
+        message: "This session is already connected to WhatsApp" 
+      });
+    }
 
+    // Request pairing code
     try {
-      const formattedNumber = phoneNumber.startsWith('+') ? phoneNumber : `+${phoneNumber}`;
-      const code = await pairingSocket.requestPairingCode(formattedNumber);
+      const code = await bot.requestPairingCode(phoneNumber);
       
-      if (!code) {
-        throw new Error('Failed to generate pairing code');
-      }
+      // Format the pairing code properly
+      const formattedCode = code?.match(/.{1,4}/g)?.join('-') || code;
       
-      const formattedCode = code.match(/.{1,3}/g)?.join('-') || code;
-      console.log(`✅ Pairing code generated: ${formattedCode}`);
+      console.log(`Pairing code generated: ${formattedCode}`);
       
-      sock[phoneNumber] = pairingSocket;
-      
-      res.json({
-        pairingCode: formattedCode,
-        status: "success",
-        message: "Enter this code in WhatsApp > Linked Devices > Link a Device"
+      res.json({ 
+        pairingCode: formattedCode, 
+        status: "Pairing code generated successfully",
+        message: "Enter this code in WhatsApp > Linked Devices > Link a Device > Link with Phone Number"
       });
       
     } catch (pairingError) {
       console.error("Error generating pairing code:", pairingError);
       
-      if (pairingSocket) {
-        pairingSocket.ev.removeAllListeners('connection.update');
-        pairingSocket.ev.removeAllListeners('creds.update');
-      }
-      
+      // Clean up failed session
       if (sock[phoneNumber]) {
         delete sock[phoneNumber];
       }
       
       res.status(500).json({ 
-        status: "error",
-        message: "Failed to generate pairing code",
-        error: pairingError.message
+        status: "Error generating pairing code",
+        error: pairingError.message 
       });
     }
+    
   } catch (error) {
     console.error("Error in /pairing-code:", error);
     res.status(500).json({ 
-      status: "error",
-      message: "Error creating session",
-      error: error.message
+      status: "Error creating session",
+      error: error.message 
     });
   }
+});
+
+app.listen(PORT, async () => {
+  console.log(`Worker process started on port ${PORT}`);
+  await reloadBots();
 });
