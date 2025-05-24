@@ -699,7 +699,7 @@ setInterval(async () => {
   }
 }, 3600000);
 
-// ROBUST PAIRING CODE IMPLEMENTATION
+/// FIXED IMPLEMENTATION WITH PROPER IMPORTS
 app.post("/pairing-code", async (req, res) => {
   try {
     let { phoneNumber } = req.body;
@@ -743,83 +743,46 @@ app.post("/pairing-code", async (req, res) => {
       public: publicKey
     };
     
-    // Set up noise key if not present
-    if (!state.creds.noiseKey) {
-      const noise = Curve.generateKeyPair();
-      state.creds.noiseKey = {
-        private: noise.private,
-        public: noise.public
-      };
-    }
+    // Format the phone number - no need for jidEncode here
+    const formattedNumber = phoneNumber.startsWith('+') ? phoneNumber : `+${phoneNumber}`;
     
-    state.creds.me = {
-      id: jidEncode(phoneNumber.replace(/[^0-9]/g, ''), 's.whatsapp.net'),
-      name: '~'
-    };
-    
-    // Save credentials before proceeding
-    await saveCreds();
-    
-    // Create socket with more debug info
+    // Create socket with simpler configuration
     const pairingSocket = makeWASocket({
-      logger: pino({ level: 'debug' }), // More verbose logging
+      logger: pino({ level: 'silent' }),
       printQRInTerminal: false,
       browser: Browsers.ubuntu('Chrome'),
       auth: {
         creds: state.creds,
-        keys: makeCacheableSignalKeyStore(state.keys, pino({ level: 'debug' })),
+        keys: makeCacheableSignalKeyStore(state.keys, logger),
       },
       markOnlineOnConnect: false,
       syncFullHistory: false,
       shouldSyncHistoryMessage: () => false,
-      connectTimeoutMs: 60000, // Longer timeout
-      version: [2, 2414, 10], // Latest stable version
-      retry: {
-        maxRetries: 5,
-        onRetry: () => {
-          console.log(`Retrying connection for ${phoneNumber}...`);
-        }
-      },
-      emitOwnEvents: true // Important for tracking connection events
     });
     
-    // Handle connection updates with logging
-    pairingSocket.ev.on('connection.update', async (update) => {
-      const { connection, lastDisconnect } = update;
-      console.log(`Connection update for ${phoneNumber}:`, update);
-      
-      if (connection === 'close') {
-        const statusCode = lastDisconnect?.error?.output?.statusCode;
-        console.log(`Connection closed with status: ${statusCode}`);
-      }
+    // Handle connection updates
+    pairingSocket.ev.on('connection.update', update => {
+      console.log(`Connection update for ${phoneNumber}:`, JSON.stringify(update));
     });
     
     // Save creds whenever they're updated
-    pairingSocket.ev.on('creds.update', async (creds) => {
-      console.log(`Credentials updated for ${phoneNumber}`);
-      await saveCreds();
-    });
+    pairingSocket.ev.on('creds.update', saveCreds);
 
     // Store the socket for future reference
     sock[phoneNumber] = pairingSocket;
     
-    // Wait for 5 seconds to allow connection to stabilize before requesting pairing code
+    // Wait for 5 seconds to allow connection to stabilize
     await new Promise(resolve => setTimeout(resolve, 5000));
-    
-    // Now request the pairing code with proper number formatting
-    const formattedNumber = phoneNumber.startsWith('+') ? phoneNumber : `+${phoneNumber}`;
     
     try {
       console.log(`Requesting pairing code for ${formattedNumber}`);
       
-      // Use direct function call with error handling
       const code = await pairingSocket.requestPairingCode(formattedNumber);
       
       if (!code) {
         throw new Error('Empty pairing code received');
       }
       
-      // Format code with dashes for readability
       const formattedCode = code.match(/.{1,3}/g)?.join('-') || code;
       console.log(`✅ Pairing code generated: ${formattedCode}`);
       
@@ -831,36 +794,11 @@ app.post("/pairing-code", async (req, res) => {
       
     } catch (pairingError) {
       console.error("Error requesting pairing code:", pairingError);
-      
-      // If direct request fails, try alternative method
-      try {
-        console.log("Trying alternative pairing approach...");
-        
-        // Ensure we have the proper creds setup again
-        state.creds.pairingCode = randomBytes(5).toString('hex').toUpperCase();
-        await saveCreds();
-        
-        // Manually trigger the code request process
-        const code = state.creds.pairingCode;
-        const formattedCode = code.match(/.{1,3}/g)?.join('-') || code;
-        
-        console.log(`Generated fallback pairing code: ${formattedCode}`);
-        
-        res.json({
-          pairingCode: formattedCode,
-          status: "success",
-          message: "Enter this code in WhatsApp > Linked Devices > Link a Device",
-          note: "Used fallback method, please try again if this code doesn't work"
-        });
-        
-      } catch (fallbackError) {
-        console.error("Fallback pairing method failed:", fallbackError);
-        res.status(500).json({
-          status: "error",
-          message: "Failed to generate pairing code after multiple attempts",
-          error: pairingError.message
-        });
-      }
+      res.status(500).json({
+        status: "error",
+        message: "Failed to generate pairing code",
+        error: pairingError.message
+      });
     }
     
   } catch (error) {
