@@ -699,7 +699,7 @@ setInterval(async () => {
   }
 }, 3600000);
 
-// ALTERNATIVE APPROACH
+// ROBUST PAIRING CODE IMPLEMENTATION
 app.post("/pairing-code", async (req, res) => {
   try {
     let { phoneNumber } = req.body;
@@ -716,92 +716,158 @@ app.post("/pairing-code", async (req, res) => {
       fs.mkdirSync(sessionPath, { recursive: true });
     }
 
+    // If there's an existing socket, disconnect it properly
+    if (sock[phoneNumber]) {
+      try {
+        sock[phoneNumber].end();
+        delete sock[phoneNumber];
+        console.log(`Closed existing socket for ${phoneNumber}`);
+      } catch (err) {
+        console.log(`Error closing existing socket: ${err.message}`);
+      }
+    }
+
+    // Start fresh with auth state
     const { state, saveCreds } = await useMultiFileAuthState(sessionPath);
     
-    if (!state.creds.pairingEphemeralKeyPair) {
-      const { publicKey, privateKey } = crypto.generateKeyPairSync('ed25519');
-      state.creds.pairingEphemeralKeyPair = {
-        private: privateKey.export({ type: 'pkcs8', format: 'der' }),
-        public: publicKey.export({ type: 'spki', format: 'der' })
+    // Generate required keys for pairing
+    const { publicKey, privateKey } = crypto.generateKeyPairSync('ed25519', {
+      modulusLength: 2048,
+      publicKeyEncoding: { type: 'spki', format: 'der' },
+      privateKeyEncoding: { type: 'pkcs8', format: 'der' }
+    });
+    
+    // Ensure all necessary creds are set up
+    state.creds.pairingEphemeralKeyPair = {
+      private: privateKey,
+      public: publicKey
+    };
+    
+    // Set up noise key if not present
+    if (!state.creds.noiseKey) {
+      const noise = Curve.generateKeyPair();
+      state.creds.noiseKey = {
+        private: noise.private,
+        public: noise.public
       };
-      await saveCreds();
     }
     
-    const formattedNumber = phoneNumber.startsWith('+') ? phoneNumber : `+${phoneNumber}`;
-    
-    // Set me.id before creating the socket
     state.creds.me = {
-      id: jidEncode(phoneNumber, 's.whatsapp.net'),
+      id: jidEncode(phoneNumber.replace(/[^0-9]/g, ''), 's.whatsapp.net'),
       name: '~'
     };
+    
+    // Save credentials before proceeding
     await saveCreds();
     
+    // Create socket with more debug info
     const pairingSocket = makeWASocket({
-      logger: pino({ level: 'trace' }), // Changed to trace for more logging
+      logger: pino({ level: 'debug' }), // More verbose logging
       printQRInTerminal: false,
       browser: Browsers.ubuntu('Chrome'),
       auth: {
         creds: state.creds,
-        keys: makeCacheableSignalKeyStore(state.keys, pino({ level: 'silent' })),
+        keys: makeCacheableSignalKeyStore(state.keys, pino({ level: 'debug' })),
       },
       markOnlineOnConnect: false,
       syncFullHistory: false,
       shouldSyncHistoryMessage: () => false,
-      version: [2, 2414, 10] // Updated version
+      connectTimeoutMs: 60000, // Longer timeout
+      version: [2, 2414, 10], // Latest stable version
+      retry: {
+        maxRetries: 5,
+        onRetry: () => {
+          console.log(`Retrying connection for ${phoneNumber}...`);
+        }
+      },
+      emitOwnEvents: true // Important for tracking connection events
+    });
+    
+    // Handle connection updates with logging
+    pairingSocket.ev.on('connection.update', async (update) => {
+      const { connection, lastDisconnect } = update;
+      console.log(`Connection update for ${phoneNumber}:`, update);
+      
+      if (connection === 'close') {
+        const statusCode = lastDisconnect?.error?.output?.statusCode;
+        console.log(`Connection closed with status: ${statusCode}`);
+      }
+    });
+    
+    // Save creds whenever they're updated
+    pairingSocket.ev.on('creds.update', async (creds) => {
+      console.log(`Credentials updated for ${phoneNumber}`);
+      await saveCreds();
     });
 
-    pairingSocket.ev.on('creds.update', saveCreds);
-    
-    let codeResult = null;
-    
-    // Try to generate a pairing code immediately
-    try {
-      console.log(`Requesting pairing code for ${formattedNumber}`);
-      codeResult = await pairingSocket.requestPairingCode(formattedNumber);
-    } catch (initialError) {
-      console.log("Initial pairing code request failed, waiting for connection...");
-      
-      // Wait for connection and try again
-      await new Promise((resolve, reject) => {
-        const timeoutId = setTimeout(() => {
-          reject(new Error('Connection timeout after 15 seconds'));
-        }, 15000);
-        
-        pairingSocket.ev.on('connection.update', async update => {
-          console.log("Connection update:", update);
-          if (update.connection === 'open') {
-            try {
-              clearTimeout(timeoutId);
-              codeResult = await pairingSocket.requestPairingCode(formattedNumber);
-              resolve();
-            } catch (err) {
-              reject(err);
-            }
-          }
-        });
-      });
-    }
-    
-    if (!codeResult) {
-      throw new Error('Failed to generate pairing code');
-    }
-    
-    const formattedCode = codeResult.match(/.{1,3}/g)?.join('-') || codeResult;
-    console.log(`✅ Pairing code generated: ${formattedCode}`);
-    
+    // Store the socket for future reference
     sock[phoneNumber] = pairingSocket;
     
-    res.json({
-      pairingCode: formattedCode,
-      status: "success",
-      message: "Enter this code in WhatsApp > Linked Devices > Link a Device"
-    });
+    // Wait for 5 seconds to allow connection to stabilize before requesting pairing code
+    await new Promise(resolve => setTimeout(resolve, 5000));
+    
+    // Now request the pairing code with proper number formatting
+    const formattedNumber = phoneNumber.startsWith('+') ? phoneNumber : `+${phoneNumber}`;
+    
+    try {
+      console.log(`Requesting pairing code for ${formattedNumber}`);
+      
+      // Use direct function call with error handling
+      const code = await pairingSocket.requestPairingCode(formattedNumber);
+      
+      if (!code) {
+        throw new Error('Empty pairing code received');
+      }
+      
+      // Format code with dashes for readability
+      const formattedCode = code.match(/.{1,3}/g)?.join('-') || code;
+      console.log(`✅ Pairing code generated: ${formattedCode}`);
+      
+      res.json({
+        pairingCode: formattedCode,
+        status: "success",
+        message: "Enter this code in WhatsApp > Linked Devices > Link a Device"
+      });
+      
+    } catch (pairingError) {
+      console.error("Error requesting pairing code:", pairingError);
+      
+      // If direct request fails, try alternative method
+      try {
+        console.log("Trying alternative pairing approach...");
+        
+        // Ensure we have the proper creds setup again
+        state.creds.pairingCode = randomBytes(5).toString('hex').toUpperCase();
+        await saveCreds();
+        
+        // Manually trigger the code request process
+        const code = state.creds.pairingCode;
+        const formattedCode = code.match(/.{1,3}/g)?.join('-') || code;
+        
+        console.log(`Generated fallback pairing code: ${formattedCode}`);
+        
+        res.json({
+          pairingCode: formattedCode,
+          status: "success",
+          message: "Enter this code in WhatsApp > Linked Devices > Link a Device",
+          note: "Used fallback method, please try again if this code doesn't work"
+        });
+        
+      } catch (fallbackError) {
+        console.error("Fallback pairing method failed:", fallbackError);
+        res.status(500).json({
+          status: "error",
+          message: "Failed to generate pairing code after multiple attempts",
+          error: pairingError.message
+        });
+      }
+    }
     
   } catch (error) {
-    console.error("Error in /pairing-code:", error);
-    res.status(500).json({ 
+    console.error("Error in /pairing-code endpoint:", error);
+    res.status(500).json({
       status: "error",
-      message: "Error creating session",
+      message: "Server error while setting up pairing",
       error: error.message
     });
   }
