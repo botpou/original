@@ -21,6 +21,7 @@ const __dirname = path.dirname(__filename)
 
 const app = express();
 const PORT = process.env.PORT || 3000;
+const crypto = require("crypto");
 
 // Middleware untuk parsing JSON dan melayani file statis
 app.use(express.json());
