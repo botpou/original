@@ -11,6 +11,7 @@ import {
   signedKeyPair,
   generateRegistrationId 
 } from '@whiskeysockets/baileys';
+import { makeInMemoryStore } from '@whiskeysockets/baileys';
 import { randomBytes } from 'crypto';
 import connectDB from '../utils/connectDB.js';
 import User from '../models/user.js';
