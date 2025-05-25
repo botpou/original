@@ -1,5 +1,7 @@
 import express from 'express';
 import pino from 'pino';
+import * as crypto from 'crypto';
+globalThis.crypto = crypto;
 import { Storage, File } from 'megajs';
 import { 
   useMultiFileAuthState, 
